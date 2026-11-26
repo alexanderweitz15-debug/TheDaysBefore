@@ -49,6 +49,47 @@ export const palette = {
   worldBorder: 0x5a7391,
   /** Placeholder for dummy agents until real unit colors exist. Neither white nor green. */
   debugAgent: 0x8c96a1,
+  /** Base color of white sprite textures that are tinted per agent kind. */
+  spriteBase: 0xffffff,
+
+  // Static city map. Muted on purpose: no saturated green (own forces) and no white (civilians).
+  map: {
+    ground: 0x1c242c,
+    water: 0x17304a,
+    park: 0x25342e,
+    forest: 0x1e2c27,
+    roadStreet: 0x3a4652,
+    roadMain: 0x4d5b69,
+    roadCasing: 0x141b22,
+    bridge: 0x6a6f78,
+    bridgeCasing: 0x0e1318,
+    rail: 0x2a2f36,
+    railTie: 0x7b6e62,
+    shadow: 0x05080b,
+    /** Wall color is the roof color multiplied by this factor. */
+    wallShade: 0.55,
+    /** Hospital marker: a plain "H", never a red cross. */
+    hospitalMark: 0x9ec3ff,
+    sectorLine: 0xffb347,
+    roofs: {
+      oldtown: 0x8a6f5c,
+      residential: 0x6f7d8c,
+      highrise: 0x5d6f86,
+      industrial: 0x70685f,
+      harbor: 0x5b7378,
+      university: 0x7f6f8f,
+      hospital: 0x8d98a6,
+      commercial: 0x887a60,
+      suburb: 0x7a7468,
+      military: 0x5c614f,
+      station: 0x7f6a5a,
+      airport: 0x68727c,
+    },
+  },
+  overlay: {
+    flow: 0x6fa3d9,
+    density: 0xffb347,
+  },
 
   // UI tokens, exported as CSS variables by the UI (see ui/palette-vars.ts).
   ui: {

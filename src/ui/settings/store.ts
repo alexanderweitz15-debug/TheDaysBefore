@@ -10,6 +10,8 @@ export const SETTING_LIMITS = {
   uiScale: { min: 75, max: 200, step: 5 },
   /** Percent of the base camera speed. */
   cameraSpeed: { min: 25, max: 300, step: 5 },
+  /** Visible zombies above which the density texture replaces sprites (GDD 4, Rendering). */
+  spriteLimit: { min: 5000, max: 30000, step: 1000 },
 } as const;
 
 const schema = z.object({
@@ -18,6 +20,9 @@ const schema = z.object({
   perfOverlay: z.boolean(),
   edgeScroll: z.boolean(),
   cameraSpeed: z.number().int().min(SETTING_LIMITS.cameraSpeed.min).max(SETTING_LIMITS.cameraSpeed.max),
+  buildings3d: z.boolean(),
+  spriteLimit: z.number().int().min(SETTING_LIMITS.spriteLimit.min).max(SETTING_LIMITS.spriteLimit.max),
+  devTools: z.boolean(),
 });
 
 export type Settings = z.infer<typeof schema>;
@@ -28,6 +33,9 @@ export const SETTING_DEFAULTS: Settings = {
   perfOverlay: true,
   edgeScroll: true,
   cameraSpeed: 100,
+  buildings3d: true,
+  spriteLimit: 20000,
+  devTools: false,
 };
 
 const spec: VersionedSpec<Settings> = {
@@ -47,6 +55,9 @@ export const settings: SettingSignals = {
   perfOverlay: signal(initial.perfOverlay),
   edgeScroll: signal(initial.edgeScroll),
   cameraSpeed: signal(initial.cameraSpeed),
+  buildings3d: signal(initial.buildings3d),
+  spriteLimit: signal(initial.spriteLimit),
+  devTools: signal(initial.devTools),
 };
 
 function current(): Settings {
@@ -56,6 +67,9 @@ function current(): Settings {
     perfOverlay: settings.perfOverlay.peek(),
     edgeScroll: settings.edgeScroll.peek(),
     cameraSpeed: settings.cameraSpeed.peek(),
+    buildings3d: settings.buildings3d.peek(),
+    spriteLimit: settings.spriteLimit.peek(),
+    devTools: settings.devTools.peek(),
   };
 }
 
@@ -70,5 +84,8 @@ export function resetSettings(): void {
   settings.perfOverlay.value = SETTING_DEFAULTS.perfOverlay;
   settings.edgeScroll.value = SETTING_DEFAULTS.edgeScroll;
   settings.cameraSpeed.value = SETTING_DEFAULTS.cameraSpeed;
+  settings.buildings3d.value = SETTING_DEFAULTS.buildings3d;
+  settings.spriteLimit.value = SETTING_DEFAULTS.spriteLimit;
+  settings.devTools.value = SETTING_DEFAULTS.devTools;
   saveVersioned(spec, current());
 }

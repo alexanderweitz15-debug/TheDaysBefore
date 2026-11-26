@@ -205,3 +205,39 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.sz-loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.75rem 1.5rem;
+}
+.sz-overlay-badge {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+.sz-debug {
+  position: absolute;
+  right: 1rem;
+  top: 13rem;
+  width: 18rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-color: var(--sz-focus);
+}
+.sz-debug h2 {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--sz-focus);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sz-debug p {
+  margin: 0;
+}

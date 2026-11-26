@@ -1,6 +1,7 @@
 // Camera: pans and zooms the world container. No rotation. 1 m = 1 px at zoom 1.
 import type { Container } from 'pixi.js';
 import { settings } from '../ui/settings/store';
+import { cameraView } from './view-state';
 
 export const ZOOM_MIN = 0.1;
 export const ZOOM_MAX = 8;
@@ -177,6 +178,11 @@ export class Camera {
     }
     this.world.scale.set(this.zoom);
     this.world.position.set(this.w / 2 - this.cx * this.zoom, this.h / 2 - this.cy * this.zoom);
+    cameraView.cx = this.cx;
+    cameraView.cy = this.cy;
+    cameraView.zoom = this.zoom;
+    cameraView.width = this.w;
+    cameraView.height = this.h;
   }
 
   destroy(): void {

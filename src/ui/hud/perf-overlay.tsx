@@ -11,12 +11,24 @@ interface Sample {
   ticksPerSecond: number;
   tickMsAvg: number;
   tickMsMax: number;
-  agents: number;
+  zombies: number;
+  civilians: number;
+  worldGenMs: number;
   tick: number;
   speed: number;
 }
 
-const EMPTY: Sample = { fps: 0, ticksPerSecond: 0, tickMsAvg: 0, tickMsMax: 0, agents: 0, tick: 0, speed: 0 };
+const EMPTY: Sample = {
+  fps: 0,
+  ticksPerSecond: 0,
+  tickMsAvg: 0,
+  tickMsMax: 0,
+  zombies: 0,
+  civilians: 0,
+  worldGenMs: 0,
+  tick: 0,
+  speed: 0,
+};
 
 export function PerfOverlay({ sim, renderer }: { sim: SimView; renderer: RendererHandle }) {
   const sample = useSignal<Sample>(EMPTY);
@@ -31,7 +43,9 @@ export function PerfOverlay({ sim, renderer }: { sim: SimView; renderer: Rendere
         ticksPerSecond: s.ticksPerSecond,
         tickMsAvg: s.tickMsAvg,
         tickMsMax: s.tickMsMax,
-        agents: s.agentCount,
+        zombies: s.zombies,
+        civilians: s.civilians,
+        worldGenMs: s.worldGenMs,
         tick: s.tick,
         speed: s.speed,
       };
@@ -52,7 +66,9 @@ export function PerfOverlay({ sim, renderer }: { sim: SimView; renderer: Rendere
     [t('perf.ticksPerSecond'), int.format(s.ticksPerSecond)],
     [t('perf.tickMsAvg'), d2.format(s.tickMsAvg)],
     [t('perf.tickMsMax'), d2.format(s.tickMsMax)],
-    [t('perf.agents'), int.format(s.agents)],
+    [t('perf.zombies'), int.format(s.zombies)],
+    [t('perf.civilians'), int.format(s.civilians)],
+    [t('perf.worldGenMs'), int.format(s.worldGenMs)],
     [t('perf.tick'), int.format(s.tick)],
     [t('perf.speed'), `${d1.format(s.speed)}x`],
   ];
