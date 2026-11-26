@@ -34,7 +34,7 @@ export function defaultStore(): KeyValueStore {
   return memoryStore();
 }
 
-/** Loads and migrates. Invalid or unknown data falls back to defaults merged with whatever still validates. */
+/** Loads and migrates. Missing fields come from defaults; any invalid field makes the whole record fall back to defaults. */
 export function loadVersioned<T>(spec: VersionedSpec<T>, store: KeyValueStore = defaultStore()): T {
   let raw: string | null = null;
   try {
