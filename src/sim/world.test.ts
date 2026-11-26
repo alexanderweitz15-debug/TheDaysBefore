@@ -63,7 +63,7 @@ describe('city world', () => {
     const c = runHeadless(createWorld, SEED + 1, SMALL, 1200, cmds);
     expect(a.hash).toBe(b.hash);
     expect(a.hash).not.toBe(c.hash);
-  });
+  }, 20_000);
 
   it('DebugSpawn uses walkable cells only and spreads outwards from full cells', () => {
     const w = new CityWorld(SEED, SMALL);

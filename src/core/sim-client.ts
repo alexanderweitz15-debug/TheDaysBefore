@@ -6,12 +6,15 @@ import type { CityMapData, CitySize } from './types/map';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
 import type { DebugField, DebugFieldKind } from './types/sim';
 import { readSnapshot, type SnapshotView } from './types/snapshot';
+import type { ZoneView } from './types/zones';
 
 export class SimClient implements SimView, CommandSink {
   prev: SnapshotView | null = null;
   curr: SnapshotView | null = null;
   map: CityMapData | null = null;
   debugField: DebugField | null = null;
+  zones: ZoneView[] = [];
+  private zoneListeners: ((z: ZoneView[]) => void)[] = [];
   stats: SimStats = {
     tick: 0,
     speed: 1,
@@ -20,6 +23,8 @@ export class SimClient implements SimView, CommandSink {
     tickMsMax: 0,
     zombies: 0,
     civilians: 0,
+    corpses: 0,
+    counters: { sheltered: 0, incubating: 0, civiliansDead: 0, zombiesKilled: 0, outbreakTick: -1 },
     worldGenMs: 0,
   };
   private prevBuffer: ArrayBuffer | null = null;
@@ -69,6 +74,14 @@ export class SimClient implements SimView, CommandSink {
     };
   }
 
+  onZones(cb: (z: ZoneView[]) => void): () => void {
+    this.zoneListeners.push(cb);
+    cb(this.zones);
+    return () => {
+      this.zoneListeners = this.zoneListeners.filter((l) => l !== cb);
+    };
+  }
+
   destroy(): void {
     this.worker.terminate();
   }
@@ -89,6 +102,10 @@ export class SimClient implements SimView, CommandSink {
         return;
       case 'debugField':
         this.debugField = msg.field;
+        return;
+      case 'zones':
+        this.zones = msg.zones;
+        for (const l of this.zoneListeners) l(msg.zones);
         return;
       case 'snapshot': {
         // The snapshot two steps back is no longer referenced: hand its buffer back to the worker.

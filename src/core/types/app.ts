@@ -4,6 +4,7 @@ import type { CityMapData } from './map';
 import type { SimStats } from './messages';
 import type { DebugField, DebugFieldKind } from './sim';
 import type { SnapshotView } from './snapshot';
+import type { ZoneView } from './zones';
 
 /** Read-only view of the simulation for render and ui. */
 export interface SimView {
@@ -23,6 +24,10 @@ export interface SimView {
   readonly debugField: DebugField | null;
   /** Requests a debug overlay field with every snapshot; null switches it off. */
   requestDebugField(kind: DebugFieldKind | null): void;
+  /** Current safe zones, corridors and rally points. */
+  readonly zones: ZoneView[];
+  /** Subscribes to zone changes (called immediately with the current list). */
+  onZones(cb: (zones: ZoneView[]) => void): () => void;
 }
 
 export interface CommandSink {

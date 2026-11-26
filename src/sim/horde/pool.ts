@@ -13,6 +13,8 @@ export class AgentPool {
   readonly cell: Int32Array;
   /** Zombies: civilian slot chased, -1 none. */
   readonly target: Int32Array;
+  /** Hit points. */
+  readonly hp: Float32Array;
   private readonly free: Int32Array;
   private freeTop = 0;
   /** Slots [0, highWater) have been used; iterate these and skip dead ones. */
@@ -28,6 +30,7 @@ export class AgentPool {
     this.alive = new Uint8Array(capacity);
     this.cell = new Int32Array(capacity);
     this.target = new Int32Array(capacity).fill(-1);
+    this.hp = new Float32Array(capacity);
     this.free = new Int32Array(capacity);
   }
 
@@ -45,6 +48,7 @@ export class AgentPool {
     this.kind[i] = 0;
     this.cell[i] = 0;
     this.target[i] = -1;
+    this.hp[i] = 0;
     this.count++;
     return i;
   }

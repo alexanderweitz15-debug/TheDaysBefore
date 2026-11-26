@@ -1,7 +1,8 @@
 // Worker protocol. Main thread -> worker: ToWorker. Worker -> main thread: FromWorker.
 import type { Command, CommandInput } from '../commands';
 import type { CityMapData, CitySize } from './map';
-import type { DebugField, DebugFieldKind } from './sim';
+import type { DebugField, DebugFieldKind, SimCounters } from './sim';
+import type { ZoneView } from './zones';
 
 export interface SimStats {
   tick: number;
@@ -13,6 +14,8 @@ export interface SimStats {
   tickMsMax: number;
   zombies: number;
   civilians: number;
+  corpses: number;
+  counters: SimCounters;
   /** Time to generate the world, in ms. */
   worldGenMs: number;
 }
@@ -29,4 +32,5 @@ export type FromWorker =
   | { type: 'map'; map: CityMapData; worldGenMs: number }
   | { type: 'snapshot'; buffer: ArrayBuffer; stats: SimStats }
   | { type: 'debugField'; field: DebugField }
+  | { type: 'zones'; zones: ZoneView[] }
   | { type: 'error'; message: string; seed: number; commandLog: Command[] };

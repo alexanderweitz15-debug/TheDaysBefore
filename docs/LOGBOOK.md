@@ -64,3 +64,9 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 20:28 | M1 | qa-review | REVIEW | A3 bestanden, Bench-Referenz neu (11,85 ms, gen 213 ms), horde-flow-Test angepasst | tests/ bench/ docs/progress/M1.md | 158 Tests grün
 2026-11-26 20:28 | M1 | hauptagent | ABNAHME | M1 bestanden bis auf 60 FPS (im Container nicht messbar, Mensch prüft) | docs/progress/M1.md | bestanden mit Einschränkung
 2026-11-26 20:28 | M1 | hauptagent | COMMIT | M1 in vier Commits, Push nach main | - | c858af4
+2026-11-26 20:30 | M1 | hauptagent | STOPP | M1 auf main und Pages deployt. Nächster Schritt M2 Infektion und Zivilisten | - | -
+2026-11-26 20:30 | M2 | hauptagent | START | Meilenstein M2 Infektion und Zivilisten begonnen | - | -
+2026-11-26 20:32 | M2 | hauptagent | PLAN | Plan M2, Schnittstellen (Befehle, Zonen, Snapshot v3, counters) und Daten (viral, Typen, Zivilisten, Lärm) | docs/plans/M2.md src/core/ src/data/ | -
+2026-11-26 20:32 | M2 | sim-engine | AUFTRAG | A0 world.ts aufteilen, A1 Infektion viral Typ 1-4, Patient Null, Leichen, Lärm; A2 Zivilisten-Zustände, Panik, Sicherheitsfeld, Zonen | src/sim/ | -
+2026-11-26 20:32 | M2 | gameplay-ui | AUFTRAG | B1 Werkzeuge Korridor/Schutzzone/Sammelpunkt, Ausbruch im Debug; B2 Darstellung Zonen, Typ-Formen, Panik, Leichen, Overlays, HUD | src/render/ src/ui/ src/data/ | -
+2026-11-26 20:32 | M2 | qa-review | AUFTRAG | Tests auf Snapshot v3, Abnahmetest Korridor und Ausbreitung vorbereiten, Bench outbreak-medium | tests/ bench/ | -

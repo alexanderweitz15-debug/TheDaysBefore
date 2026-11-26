@@ -19,7 +19,33 @@ export type DebugSpawnCommand = CommandBase<
   { x: number; y: number; count: number; kind?: 'zombie' | 'civilian' }
 >;
 
-export type Command = SetGameSpeedCommand | DebugSpawnCommand;
+/** Starts the outbreak: patient zero of `family` at (x, y) meters. */
+export type StartOutbreakCommand = CommandBase<
+  'StartOutbreak',
+  { x: number; y: number; family: PathogenFamily }
+>;
+/** Safe zone: axis-aligned rectangle in meters. Capacity is derived from buildings inside (data). */
+export type PlaceSafeZoneCommand = CommandBase<
+  'PlaceSafeZone',
+  { x0: number; y0: number; x1: number; y1: number }
+>;
+/** Corridor: polyline in meters, flat [x0, y0, x1, y1, ...]; the last point is the destination end. */
+export type DrawCorridorCommand = CommandBase<'DrawCorridor', { points: number[] }>;
+/** Rally point with capacity from data. */
+export type SetRallyPointCommand = CommandBase<'SetRallyPoint', { x: number; y: number }>;
+/** Removes a zone, corridor or rally point by id. */
+export type RemoveZoneCommand = CommandBase<'RemoveZone', { id: number }>;
+
+export type PathogenFamily = 'viral' | 'bacterial' | 'fungal' | 'parasitic' | 'chemical' | 'nanotech';
+
+export type Command =
+  | SetGameSpeedCommand
+  | DebugSpawnCommand
+  | StartOutbreakCommand
+  | PlaceSafeZoneCommand
+  | DrawCorridorCommand
+  | SetRallyPointCommand
+  | RemoveZoneCommand;
 export type CommandType = Command['type'];
 /** What UI and bots submit: the host assigns the tick. */
 export type CommandInput = Omit<Command, 'tick'>;

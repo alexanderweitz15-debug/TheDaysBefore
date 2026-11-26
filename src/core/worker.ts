@@ -25,8 +25,11 @@ const stats: SimStats = {
   tickMsMax: 0,
   zombies: 0,
   civilians: 0,
+  corpses: 0,
+  counters: { sheltered: 0, incubating: 0, civiliansDead: 0, zombiesKilled: 0, outbreakTick: -1 },
   worldGenMs: 0,
 };
+let sentZonesVersion = -1;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -54,14 +57,22 @@ function sendSnapshot(h: SimHost): void {
   const w = h.world;
   const zc = w.zombieCount;
   const cc = w.civilianCount;
-  const buffer = takeBuffer(snapshotByteLength(zc, cc));
-  const view = writeSnapshotHeader(buffer, h.tick, w.widthM, w.heightM, zc, cc);
+  const dc = w.corpseCount;
+  const buffer = takeBuffer(snapshotByteLength(zc, cc, dc));
+  const view = writeSnapshotHeader(buffer, h.tick, w.widthM, w.heightM, zc, cc, dc);
   w.writeZombies(view.zombies);
   w.writeCivilians(view.civilians);
+  w.writeCorpses(view.corpses);
+  if (w.zonesVersion !== sentZonesVersion) {
+    sentZonesVersion = w.zonesVersion;
+    post({ type: 'zones', zones: w.zones() });
+  }
   stats.tick = h.tick;
   stats.speed = h.loop.speed;
   stats.zombies = zc;
   stats.civilians = cc;
+  stats.corpses = dc;
+  stats.counters = { ...w.counters };
   post({ type: 'snapshot', buffer, stats: { ...stats } }, [buffer]);
   if (debugKind) {
     const field = w.debugField(debugKind);

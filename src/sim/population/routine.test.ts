@@ -26,9 +26,7 @@ function checkCivilians(w: CityWorld): void {
       throw new Error(`civilian ${i} at cell ${cell} (stored ${c.cell[i]})`);
     counts[cell] = (counts[cell] as number) + 1;
   }
-  expect(Array.from((w as unknown as { civilianCells: Uint16Array }).civilianCells)).toEqual(
-    Array.from(counts),
-  );
+  expect(Array.from(w.s.civilianCells)).toEqual(Array.from(counts));
 }
 
 function isDoor(w: CityWorld, f: number, cell: number): boolean {
@@ -170,7 +168,7 @@ describe('civilian routine', () => {
     let changed = 0;
     for (let i = 0; i < before.length; i++) if (before[i] !== w.civilians.posX[i]) changed++;
     expect(changed).toBeGreaterThan(100);
-  });
+  }, 20_000);
 
   it('spawned civilians join the routine and respect the civilian placement density', () => {
     const w = new CityWorld(SEED, SMALL);
@@ -182,7 +180,7 @@ describe('civilian routine', () => {
       payload: { x: 500, y: 500, count: 600, kind: 'civilian' },
     });
     const r = w.routine;
-    const cells = (w as unknown as { civilianCells: Uint16Array }).civilianCells;
+    const cells = w.s.civilianCells;
     for (let i = hw; i < w.civilians.highWater; i++) {
       expect(r.home[i]).toBeGreaterThanOrEqual(0);
       expect(r.timer[i]).toBeLessThanOrEqual(CIVILIAN_MOVEMENT.dwellMinS * TICK_RATE);

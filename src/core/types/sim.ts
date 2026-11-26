@@ -3,8 +3,9 @@ import type { Command } from '../commands';
 import type { HashState } from '../hash';
 import type { CityMapData, CitySize } from './map';
 import type { AgentSection } from './snapshot';
+import type { ZoneView } from './zones';
 
-export type DebugFieldKind = 'flow' | 'density';
+export type DebugFieldKind = 'flow' | 'density' | 'infection' | 'noise' | 'safety';
 
 /** Debug overlay grid. flow: direction 0..7 (E, NE, N, NW, W, SW, S, SE), 255 = none. density: agents per cell. */
 export interface DebugField {
@@ -21,6 +22,12 @@ export interface SimWorld {
   readonly map: CityMapData;
   readonly zombieCount: number;
   readonly civilianCount: number;
+  readonly corpseCount: number;
+  /** Outcome counters for HUD and scoring. */
+  readonly counters: SimCounters;
+  /** Increments whenever zones change; the host resends zones() then. */
+  readonly zonesVersion: number;
+  zones(): ZoneView[];
   /** Called at the start of a tick, once per due command, in queue order. Must ignore non-sim commands. */
   applyCommand(cmd: Command): void;
   /** Runs all systems for `tick` in the order of GDD section 4. No allocations. */
@@ -30,8 +37,20 @@ export interface SimWorld {
   /** Fills sections whose count equals zombieCount / civilianCount. */
   writeZombies(out: AgentSection): void;
   writeCivilians(out: AgentSection): void;
+  writeCorpses(out: AgentSection): void;
   /** Debug only, may allocate. Null if the field does not exist. */
   debugField(kind: DebugFieldKind): DebugField | null;
+}
+
+export interface SimCounters {
+  /** Civilians currently sheltered in safe zones or at rally points (rescued for scoring, GDD 10). */
+  sheltered: number;
+  /** Infected but not yet turned (hidden from the player without research, GDD 7). */
+  incubating: number;
+  civiliansDead: number;
+  zombiesKilled: number;
+  /** Tick of outbreak start, -1 before. */
+  outbreakTick: number;
 }
 
 export interface WorldOptions {

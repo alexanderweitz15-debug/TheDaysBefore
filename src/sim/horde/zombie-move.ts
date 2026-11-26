@@ -1,17 +1,14 @@
-// Zombie movement (GDD 8 rules 1-4): direct target in sight, else flow field, separation, density cap,
-// no movement into buildings or water. Allocation-free.
-import type { Rng } from '../../core/rng';
+// Zombie movement (GDD 8 rules 1-4): direct target in sight, else noise gradient blended with the flow field
+// (weight per type), separation, density cap, no movement into buildings or water. Speed per type with patient
+// zero aura and scream boost. Allocation-free.
 import { cosU, sinU } from '../math/trig';
-import { DIR_NONE, DIR_X, DIR_Y, type FlowField } from './flow-field';
-import type { AgentPool } from './pool';
-import type { CellBuckets, SpatialHash } from './spatial-hash';
+import type { SimState } from '../state';
+import { DIR_NONE, DIR_X, DIR_Y } from './flow-field';
+import { TYPE_DIAMETER, TYPE_NOISE_SHARE, TYPE_SPEED } from './zombie-traits';
 
 export interface ZombieMoveParams {
-  readonly speedMps: number;
   readonly dt: number;
   readonly sightM: number;
-  /** Separation distance (two radii). */
-  readonly diameterM: number;
   readonly separationWeight: number;
   readonly maxPerCell: number;
   readonly noiseUnits: number;
@@ -19,32 +16,20 @@ export interface ZombieMoveParams {
   readonly idleHeadingScale: number;
   readonly targetScanInterval: number;
   readonly maxSeparationNeighbors: number;
+  readonly auraRadiusM: number;
+  readonly auraBonus: number;
+  readonly screamBonus: number;
 }
 
-export interface HordeState {
-  readonly n: number;
-  readonly cellM: number;
-  readonly sizeM: number;
-  readonly walkable: Uint8Array;
-  /** Zombies per map cell (density cap). */
-  readonly zombieCells: Uint16Array;
-  readonly zombies: AgentPool;
-  readonly civilians: AgentPool;
-  /** Zombies per map cell, for separation. */
-  readonly zombieBuckets: CellBuckets;
-  readonly civilianHash: SpatialHash;
-  readonly flow: FlowField;
-  readonly rng: Rng;
-}
-
-function findTarget(s: HordeState, x: number, y: number, sight: number): number {
+function findTarget(s: SimState, x: number, y: number, sight: number): number {
   const h = s.civilianHash;
   const x0 = h.coord(x - sight);
   const x1 = h.coord(x + sight);
   const y0 = h.coord(y - sight);
   const y1 = h.coord(y + sight);
   if (h.windowCount(x0, y0, x1, y1) === 0) return -1;
-  const { posX, posY } = s.civilians;
+  const { posX, posY, alive } = s.civilians;
+  const turn = s.ct.turnTick;
   let best = -1;
   let bestD = sight * sight;
   for (let gy = y0; gy <= y1; gy++) {
@@ -53,6 +38,8 @@ function findTarget(s: HordeState, x: number, y: number, sight: number): number 
       const end = h.start[c + 1] as number;
       for (let k = h.start[c] as number; k < end; k++) {
         const j = h.items[k] as number;
+        // Incubating humans smell like the horde and are ignored.
+        if (!alive[j] || (turn[j] as number) >= 0) continue;
         const dx = (posX[j] as number) - x;
         const dy = (posY[j] as number) - y;
         const d = dx * dx + dy * dy;
@@ -66,9 +53,16 @@ function findTarget(s: HordeState, x: number, y: number, sight: number): number 
   return best;
 }
 
-export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): void {
+export function moveZombies(s: SimState, p: ZombieMoveParams, tick: number): void {
   const z = s.zombies;
-  const { posX, posY, velX, velY, alive, cell, target } = z;
+  const { posX, posY, velX, velY, alive, cell, target, kind } = z;
+  const boostUntil = s.zt.boostUntil;
+  const turnTick = s.ct.turnTick;
+  const noise = s.noise;
+  const pz = s.outbreak.pzSlot;
+  const pzX = pz >= 0 ? (posX[pz] as number) : 0;
+  const pzY = pz >= 0 ? (posY[pz] as number) : 0;
+  const aura2 = pz >= 0 ? p.auraRadiusM * p.auraRadiusM : -1;
   const civ = s.civilians;
   const { n, cellM, walkable, zombieCells, flow, rng } = s;
   const zb = s.zombieBuckets;
@@ -79,9 +73,6 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
   const dirs = flow.dirs;
   const maxXY = s.sizeM - 1e-3;
   const sight2 = p.sightM * p.sightM;
-  const diam = p.diameterM;
-  const diam2 = diam * diam;
-  const invDiam = 1 / diam;
   const hw = z.highWater;
 
   for (let i = 0; i < hw; i++) {
@@ -89,6 +80,7 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
     const x = posX[i] as number;
     const y = posY[i] as number;
     const c0 = cell[i] as number;
+    const type = kind[i] as number;
 
     // Rule 1: nearest human in sight (scan staggered over slots, keep the target in between).
     let t = target[i] as number;
@@ -96,7 +88,7 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
     else if (t >= 0) {
       const dx = (civ.posX[t] as number) - x;
       const dy = (civ.posY[t] as number) - y;
-      if (!civ.alive[t] || dx * dx + dy * dy > sight2) t = -1;
+      if (!civ.alive[t] || (turnTick[t] as number) >= 0 || dx * dx + dy * dy > sight2) t = -1;
     }
     target[i] = t;
 
@@ -114,6 +106,17 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
       } else {
         dx = velX[i] as number;
         dy = velY[i] as number;
+      }
+      // Rule 2: noise pulls before the flow field, weighted per type.
+      if (noise.sample(x, y) > 0) {
+        const g = Math.sqrt(noise.gx * noise.gx + noise.gy * noise.gy);
+        if (g > 1e-6) {
+          const a = TYPE_NOISE_SHARE[type] as number;
+          const fl = Math.sqrt(dx * dx + dy * dy);
+          const keep = fl > 1e-6 ? (1 - a) / fl : 0;
+          dx = dx * keep + (noise.gx / g) * a;
+          dy = dy * keep + (noise.gy / g) * a;
+        }
       }
     }
     let len = Math.sqrt(dx * dx + dy * dy);
@@ -135,6 +138,9 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
     let sx = 0;
     let sy = 0;
     let found = 0;
+    const diam = TYPE_DIAMETER[type] as number;
+    const diam2 = diam * diam;
+    const invDiam = 1 / diam;
     const cxc = c0 % n;
     const cyc = (c0 - cxc) / n;
     const fx = x - cxc * cellM;
@@ -165,12 +171,19 @@ export function moveZombies(s: HordeState, p: ZombieMoveParams, tick: number): v
       }
     }
 
-    let vx = (dx + sx * p.separationWeight) * p.speedMps;
-    let vy = (dy + sy * p.separationWeight) * p.speedMps;
+    let speed = TYPE_SPEED[type] as number;
+    if (aura2 >= 0 && i !== pz) {
+      const ax = x - pzX;
+      const ay = y - pzY;
+      if (ax * ax + ay * ay <= aura2) speed *= 1 + p.auraBonus;
+    }
+    if ((boostUntil[i] as number) > tick) speed *= 1 + p.screamBonus;
+    let vx = (dx + sx * p.separationWeight) * speed;
+    let vy = (dy + sy * p.separationWeight) * speed;
     len = Math.sqrt(vx * vx + vy * vy);
-    if (len > p.speedMps) {
-      vx *= p.speedMps / len;
-      vy *= p.speedMps / len;
+    if (len > speed) {
+      vx *= speed / len;
+      vy *= speed / len;
     }
 
     // Move; never into buildings, water or full cells. Slide along one axis if the diagonal is blocked.

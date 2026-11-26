@@ -1,52 +1,45 @@
-// Weighted flow field solver for shared destination fields (civilian routine). Dial's algorithm with per-cell
-// entry costs (straight c, diagonal 1.5c), spread over ticks by a work budget. Directions are set when a cell is
-// relaxed (pointing back to the cell that relaxed it), so no separate direction pass is needed.
+// Weighted flow field solver (civilian destination fields, safety field). Dial's algorithm with per-cell entry
+// costs (straight c, diagonal 1.5c), spread over ticks by a work budget. Buckets are doubly linked lists, so a
+// cell is queued at most once (decrease-key by unlinking) and memory does not depend on the bucket count.
+// Directions are set when a cell is relaxed (pointing back to the cell that relaxed it).
 import { DIR_NONE } from '../horde/flow-field';
 
 const INF = 0x7fffffff;
+const NOT_QUEUED = -2;
 /** Neighbor steps in direction-code order (E, NE, N, NW, W, SW, S, SE; y grows southwards). */
 const STEP_X = [1, 1, 0, -1, -1, -1, 0, 1];
 const STEP_Y = [0, -1, -1, -1, 0, 1, 1, 1];
 
 export class CostFieldSolver {
   readonly cells: number;
-  private readonly dist: Int32Array;
-  /** Diagonal entry cost per cell, precomputed. */
-  private readonly diag: Uint8Array;
-  /** `mask + 1` bucket queues by distance; each bucket holds one distance value at a time. */
-  private readonly buckets: Int32Array[];
-  private readonly bucketLen: Int32Array;
+  readonly dist: Int32Array;
+  private readonly head: Int32Array;
+  private readonly next: Int32Array;
+  private readonly prev: Int32Array;
   private readonly mask: number;
   private out: Uint8Array | null = null;
   private outOffset = 0;
   private current = 0;
-  private cursor = 0;
   private queued = 0;
 
   /**
    * @param walkable 1 = passable.
-   * @param cost straight entry cost per walkable cell, >= 1.
+   * @param cost straight entry cost per cell, 1..maxCost; read while a job runs, so change it only between jobs.
    */
   constructor(
     readonly n: number,
     private readonly walkable: Uint8Array,
-    private readonly cost: Uint8Array,
+    readonly cost: Uint8Array,
+    maxCost = 255,
   ) {
     this.cells = n * n;
     this.dist = new Int32Array(this.cells);
-    this.diag = new Uint8Array(this.cells);
-    let maxStep = 1;
-    for (let c = 0; c < this.cells; c++) {
-      const d = ((cost[c] as number) * 3) >> 1;
-      this.diag[c] = d;
-      if (walkable[c] && d > maxStep) maxStep = d;
-    }
+    this.next = new Int32Array(this.cells);
+    this.prev = new Int32Array(this.cells);
     let b = 1;
-    while (b <= maxStep) b *= 2;
+    while (b <= (maxCost * 3) >> 1) b *= 2;
     this.mask = b - 1;
-    this.buckets = [];
-    for (let i = 0; i < b; i++) this.buckets.push(new Int32Array(this.cells));
-    this.bucketLen = new Int32Array(b);
+    this.head = new Int32Array(b);
   }
 
   get busy(): boolean {
@@ -57,51 +50,60 @@ export class CostFieldSolver {
   start(seeds: Int32Array, from: number, to: number, out: Uint8Array, offset: number): void {
     out.fill(DIR_NONE, offset, offset + this.cells);
     this.dist.fill(INF);
-    this.bucketLen.fill(0);
-    const b0 = this.buckets[0] as Int32Array;
-    let len = 0;
+    this.prev.fill(NOT_QUEUED);
+    this.head.fill(-1);
+    this.queued = 0;
     for (let k = from; k < to; k++) {
       const c = seeds[k] as number;
       if (!this.walkable[c] || this.dist[c] === 0) continue;
       this.dist[c] = 0;
-      b0[len++] = c;
+      this.link(c, 0);
     }
-    this.bucketLen[0] = len;
-    this.queued = len;
-    this.out = out;
+    this.out = this.queued > 0 ? out : null;
     this.outOffset = offset;
     this.current = 0;
-    this.cursor = 0;
-    if (len === 0) this.out = null;
+  }
+
+  private link(c: number, d: number): void {
+    const b = d & this.mask;
+    const h = this.head[b] as number;
+    this.next[c] = h;
+    this.prev[c] = -1;
+    if (h >= 0) this.prev[h] = c;
+    this.head[b] = c;
+    this.queued++;
+  }
+
+  private unlink(c: number, d: number): void {
+    const p = this.prev[c] as number;
+    const nx = this.next[c] as number;
+    if (p >= 0) this.next[p] = nx;
+    else this.head[d & this.mask] = nx;
+    if (nx >= 0) this.prev[nx] = p;
+    this.prev[c] = NOT_QUEUED;
+    this.queued--;
   }
 
   /** Advances by at most `budget` popped cells. Returns the unused budget; the field is complete when !busy. */
   advance(budget: number): number {
     const out = this.out;
     if (!out) return budget;
-    const { n, dist, walkable, cost, diag, buckets, bucketLen, mask } = this;
+    const { n, dist, walkable, cost, head, prev } = this;
     const off = this.outOffset;
     let left = budget;
-    let cur = this.current;
-    let cursor = this.cursor;
-    let queued = this.queued;
     while (left > 0) {
-      const bi = cur & mask;
-      const queue = buckets[bi] as Int32Array;
-      if (cursor >= (bucketLen[bi] as number)) {
-        bucketLen[bi] = 0;
-        cursor = 0;
-        if (queued === 0) {
-          this.out = null;
-          return left;
-        }
-        cur++;
+      if (this.queued === 0) {
+        this.out = null;
+        return left;
+      }
+      const cur = this.current;
+      const c = head[cur & this.mask] as number;
+      if (c < 0) {
+        this.current = cur + 1;
         continue;
       }
-      const c = queue[cursor++] as number;
-      queued--;
+      this.unlink(c, cur);
       left--;
-      if (dist[c] !== cur) continue;
       const x = c % n;
       const y = (c - x) / n;
       const e = x < n - 1 && walkable[c + 1] === 1;
@@ -116,26 +118,22 @@ export class CostFieldSolver {
         const j = c + sy * n + sx;
         const straight = sx === 0 || sy === 0;
         if (!straight && walkable[j] !== 1) continue;
-        const d = cur + (straight ? (cost[j] as number) : (diag[j] as number));
-        if (d >= (dist[j] as number)) continue;
+        const cj = cost[j] as number;
+        const d = cur + (straight ? cj : (cj * 3) >> 1);
+        const old = dist[j] as number;
+        if (d >= old) continue;
+        if (prev[j] !== NOT_QUEUED) this.unlink(j, old);
         dist[j] = d;
         // Moving from j towards the goal goes back along the opposite step.
         out[off + j] = (k + 4) & 7;
-        const bj = d & mask;
-        const l = bucketLen[bj] as number;
-        (buckets[bj] as Int32Array)[l] = j;
-        bucketLen[bj] = l + 1;
-        queued++;
+        this.link(j, d);
       }
     }
-    this.current = cur;
-    this.cursor = cursor;
-    this.queued = queued;
     return 0;
   }
 
   /** Job progress, for the world hash. */
   progress(): number {
-    return ((this.busy ? 0x80000000 : 0) | ((this.current & 0xffff) << 15) | (this.cursor & 0x7fff)) >>> 0;
+    return ((this.busy ? 0x80000000 : 0) | ((this.current & 0xffff) << 15) | (this.queued & 0x7fff)) >>> 0;
   }
 }
