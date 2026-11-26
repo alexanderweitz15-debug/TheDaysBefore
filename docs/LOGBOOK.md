@@ -63,3 +63,4 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 20:24 | M1 | qa-review | AUFTRAG | horde-flow-Test an Alltag anpassen, Bench-Referenz auf dieser Maschine neu, Review A3 | tests/ bench/ docs/progress/M1.md | -
 2026-11-26 20:28 | M1 | qa-review | REVIEW | A3 bestanden, Bench-Referenz neu (11,85 ms, gen 213 ms), horde-flow-Test angepasst | tests/ bench/ docs/progress/M1.md | 158 Tests grün
 2026-11-26 20:28 | M1 | hauptagent | ABNAHME | M1 bestanden bis auf 60 FPS (im Container nicht messbar, Mensch prüft) | docs/progress/M1.md | bestanden mit Einschränkung
+2026-11-26 20:28 | M1 | hauptagent | COMMIT | M1 in vier Commits, Push nach main | - | c858af4
