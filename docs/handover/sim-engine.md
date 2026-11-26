@@ -31,3 +31,22 @@ graph.ts: Brückenstücke enden exakt an Uferpunkten (4 m Überstand nur beim Ma
 - Kein Dichtelimit in der Zivilisten-Bewegung (Gegenströme blockieren sonst). Eigener Wert CIVILIAN_MOVEMENT.maxPerCell = 6 nur beim Platzieren.
 - Zombie-Flow-Ziel: Signatur über Ziel-Blöcke, Hysterese 1,0/0,5, Neustart höchstens alle 400 Ticks, Auffrischung nach 1200. Zivilisten-Hash alle 5 Ticks.
 - map/layout.ts und horde/engine.ts gelöscht, Werte in src/data. Nächster Leistungshebel: Separation (~10 ms von ~11,5).
+
+## Nachtrag M2 A0/A1 (für A2)
+- Struktur: world.ts (CityWorld, Systeme in GDD-4-Reihenfolge) auf gemeinsamem SimState (state.ts: Pools, Zellzähler, ct CivilianTraits, zt ZombieTraits, corpses, routine, zones, noise, density, flow, outbreak, infection, counters, placeAround). world-setup.ts (Bewohner, Spawns, Zentrum), horde/goals.ts (Zombie-Ziele mit Hysterese), population/routine-move.ts.
+- infection/: attack.ts (Angriffe, hitCivilian, killCivilian, removeCivilian, initCivilian), incubation.ts (startOutbreak, Verwandlung, aufstehende Leichen, Infektionsfeld), outbreak.ts (Patient Null, Verlangsamung, Reifegrad, Tabelle), corpses.ts.
+- horde/: zombie-traits.ts (Typtabellen, spawnZombie, killZombie), zombie-density.ts (Anzahl/Schwerpunkt je 16-m-Zelle jeden Tick, für Wahrnehmung und Abstoßung), screamer.ts. Lärm: systems/noise.ts (Abklingen alle 20 Ticks).
+- Zustände: pool.kind = Verhalten (CS_* in population/civilian-traits.ts); Infektion getrennt in ct.turnTick (>= 0 infiziert), writeCivilians schreibt Infizierte als incubating. Heute gesetzt nur sheltered (zones.tryShelter, noch von keiner Bewegung aufgerufen) und panic/alerted (zones.breach/remove). Treffer setzt ct.panic = 1. Panik-Logik fehlt.
+- population/zones.ts: feste Slots, zoneOfCell, Korridor-Maske, Führungsmaske guided (16 m), Kapazität aus Gebäudezellen, Breach, publish (Version höchstens alle 20 Ticks), views(). Befehle in applyCommand verdrahtet, ungetestet. debugField('safety') = null.
+- A2-Einhaken: Wahrnehmung/Panik als Schritt 5 am Anfang von step über s.density.query und s.noise.sample, gestaffelt (CIVILIAN_ALERT.scanIntervalTicks). Stadtalarm outbreak.startTick + cityAlarmDelayS. Fluchtbewegung nach moveRoutine; Routine bewegt nur kind == routine. Unbegleitete Alarmierte nach Hause über routine.home-Felder.
+- Sicherheitsfeld: eigener CostFieldSolver (pathing/cost-field.ts) mit eigenem Kosten-Array: stepCost x 4, Korridor x corridorCostFactor, Abstoßung aus density + 30 m. Kosten nur zwischen Jobs ändern. Doppelpuffer Richtungen. Start bei zones.goalsVersion-Wechsel oder alle recomputeEveryTicks, Saat zones.goalCells, Budget SAFETY_FIELD.cellsPerTick.
+- Zähler: sheltered über zones.tryShelter/leave/Freigabe; incubating, civiliansDead in attack.ts; zombiesKilled killZombie; outbreakTick startOutbreak. Neue Arrays in world.hash.
+- Leistung: Ausbruch ~2 ms; + 30.000 Zombies 12,8 ms avg, p95 17,5 ms (Separation ~10 ms). Mess-Skript scratchpad/ob.mts (EXTRA, TICKS).
+- Fallen: Free-List LIFO (Tests: s.placed[0], nicht Slot 0). Zivilisten nur über removeCivilian entfernen, Zombies nur über spawnZombie/initZombie. applyCommand setzt s.tick = max(s.tick, cmd.tick). zones.rebuild erzeugt Closures (nur bei Änderung). findTarget überspringt Inkubierende.
+
+## Nachtrag M2 A2/A3
+- Neu: pathing/safety-field.ts (eigener CostFieldSolver, Doppelpuffer, Debug 255 an Zone bis 1, 0 unerreichbar; Neustart nur bei Zieländerung oder Zombie-Maske in ≥ 12 groben Zellen, Kostenpass über mehrere Ticks), population/perception.ts (Schritt 5, gestaffelt), population/flight-move.ts. s.safety auf SimState; perceive zuerst in step, moveFlight nach moveRoutine.
+- Regeln: unwissende Routine-Zivilisten ignorieren Zombies; gewarnte verstecken sich zuhause, Zombies brechen ein (0,5 je Angriff, Türlärm); Inkubierende verhalten sich normal; Rennen nur unter Bedrohung, Ausdauer 15 s bei 5 m/s, Erholung 0,25/s; Stadtalarm 30 s + bis 180 s gestaffelt, 70 % folgen; Führung bleibt nach Eintritt in Führungsbereich; Korridor-Führung 100 m.
+- Viral vorläufig: infectChance 0,6, Inkubation 10–30 s, Patient Null 1,8 m/s (siehe DECISIONS).
+- Leistung: volle Ausbreitung bis 19.800 Zombies 6,0 ms avg; + 30.000 extra 12–14 ms avg, p95 ≤ 18 ms.
+- Tests: infection/spread.test.ts (~90 s), civilians.test.ts (~50 s) – schwer, ggf. getrennt laufen lassen.

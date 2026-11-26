@@ -70,3 +70,26 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 20:32 | M2 | sim-engine | AUFTRAG | A0 world.ts aufteilen, A1 Infektion viral Typ 1-4, Patient Null, Leichen, Lärm; A2 Zivilisten-Zustände, Panik, Sicherheitsfeld, Zonen | src/sim/ | -
 2026-11-26 20:32 | M2 | gameplay-ui | AUFTRAG | B1 Werkzeuge Korridor/Schutzzone/Sammelpunkt, Ausbruch im Debug; B2 Darstellung Zonen, Typ-Formen, Panik, Leichen, Overlays, HUD | src/render/ src/ui/ src/data/ | -
 2026-11-26 20:32 | M2 | qa-review | AUFTRAG | Tests auf Snapshot v3, Abnahmetest Korridor und Ausbreitung vorbereiten, Bench outbreak-medium | tests/ bench/ | -
+2026-11-26 20:32 | M2 | hauptagent | ENTSCHEIDUNG | Zwischenstände nur noch auf Branch wip, main erst nach grüner Abnahme | - | -
+2026-11-26 20:35 | M2 | qa-review | FERTIG | Tests auf Snapshot v3, Abnahmetest M2 vorbereitet (RUN_M2=1), Bench outbreak-medium (BENCH_OUTBREAK=1) | tests/ bench/ | 121 grün, 3 übersprungen, Schwellen noch unkalibriert
+2026-11-26 20:36 | M2 | gameplay-ui | FERTIG | B1 Werkzeuge K/Z/V, Entfernen, Ausbruch im Debug; B2 Zonen, Korridore, Typ-Formen, Panik, Leichen-Decals, Overlays, Status-HUD | src/render/ src/ui/ src/data/ | Biome, tsc, vite build sauber, keine Sichtprüfung
+2026-11-26 20:36 | M2 | hauptagent | FIX | Worker sendet Zonen zusätzlich jede Sekunde, damit die Belegung aktuell bleibt | src/core/worker.ts | -
+2026-11-26 20:45 | M2 | sim-engine | FERTIG | A0 world.ts aufgeteilt, A1 Infektion viral Typ 1-4, Patient Null, Leichen, Brüller, Lärmfeld | src/sim/ | 51 Sim-Tests grün, Ausbruch + 30.000 Zombies 12,8 ms avg p95 17,5 ms
+2026-11-26 20:46 | M2 | sim-engine | AGENT-NEU | Übergabe nach A1 gesichert (243.000 Tokens), A2 an frischen Agenten | docs/handover/sim-engine.md | -
+2026-11-26 20:46 | M2 | sim-engine | AUFTRAG | A2 Zivilisten-Zustände, Panik, Sicherheitsfeld, Zonen, Sammelpunkte | src/sim/ | -
+2026-11-26 21:04 | M2 | sim-engine | FERTIG | A2 Zivilisten-Zustände, Wahrnehmung, Panik, Sicherheitsfeld, Flucht, Zonen und Breach | src/sim/pathing/safety-field.ts src/sim/population/ | 65 Sim-Tests grün, 11,2-12,6 ms avg, p95 <= 18,7 ms; Ausbreitung halb so schnell wie in A1
+2026-11-26 21:04 | M2 | qa-review | AUFTRAG | Abnahmetests M2 scharf schalten und kalibrieren, horde-flow anpassen, Bench-Zählprüfung, Review A1/A2/B | tests/ bench/ docs/progress/M2.md | -
+2026-11-26 21:19 | M2 | qa-review | REVIEW | Abnahme M2 teilweise: Ausbreitung zusammenhängend aber sehr langsam (27 Zombies nach 6 min), Korridor nur +1,1 % (Test it.fails); Review A/B ohne Blocker | docs/progress/M2.md tests/m2-acceptance.test.ts | 191 grün, 1 absichtlich rot
+2026-11-26 21:19 | M2 | hauptagent | ENTSCHEIDUNG | Ausbreitungsziel und Korridor-Führung festgelegt | docs/DECISIONS.md | -
+2026-11-26 21:19 | M2 | sim-engine | AUFTRAG | A3 Ausbreitung beschleunigen (Zuhause nicht sicher, Inkubierende mischen sich, Ausdauer), Korridor-Führung; Review-A-Literale | src/sim/ src/data/ | -
+2026-11-26 21:20 | M2 | gameplay-ui | AUFTRAG | B3 Review-B-Punkte: Korridor-Punktgrenze, Löschen mit Bestätigung/Rückgängig, Leichen-Signatur, Last bei vielen Leichen | src/render/ src/ui/ src/data/ | -
+2026-11-26 21:20 | M2 | qa-review | AGENT-NEU | Kontext 264.000 Tokens, nächster Prüfauftrag an frischen Agenten mit docs/handover/qa-review.md | - | -
+2026-11-26 21:21 | M2 | gameplay-ui | FERTIG | B3 Korridor-Punktgrenze, Zone löschen mit 4 s Rückgängig und Einstellung, Leichen-Signatur als Zahlen-Hash, keine Allokation im Frame | src/render/ src/ui/ src/data/ | Biome, tsc, vite build sauber
+2026-11-26 21:21 | M2 | gameplay-ui | AUFTRAG | B4 Kamera-Culling für Agenten-Sprites | src/render/layers/ | -
+2026-11-26 21:22 | M2 | gameplay-ui | FERTIG | B4 Kamera-Culling im AgentSet, ohne Allokation pro Frame | src/render/layers/agent-set.ts src/data/render.ts | Übersicht 1,02 ms bei 55.230 Partikeln, Nahzoom 0,37 ms
+2026-11-26 21:45 | M2 | sim-engine | FERTIG | A3 Ausbreitung (Einbruch zuhause, Inkubierende mischen sich, Ausdauer, gestaffelter Alarm), Korridor-Führung 100 m, Review-A-Punkte | src/sim/ src/data/ | 68 Sim-Tests grün; 1342-2316 Infizierte nach 5 min, 99,8 % nach 15 min; Korridor +42 bis +58 %; 12-14 ms avg mit 49.500 Zombies
+2026-11-26 21:45 | M2 | hauptagent | ENTSCHEIDUNG | Viral-Werte vorläufig abweichend, Balancing in M4/M5 | docs/DECISIONS.md | -
+2026-11-26 21:45 | M2 | qa-review | AUFTRAG | Frischer Agent: Abnahmetests auf neue Zeitfenster, Gesamtlauf, Bench-Referenz, Abschlussreview | tests/ bench/ docs/progress/M2.md | -
+2026-11-26 21:45 | M2 | sim-engine | AGENT-NEU | Kontext 251.000 Tokens, Übergabe ergänzt; nächster Sim-Auftrag an frischen Agenten | docs/handover/sim-engine.md | -
+2026-11-26 22:06 | M2 | qa-review | REVIEW | Abschluss M2: Abnahmetests kalibriert (Korridor +68 %, jeder Seed höher; >= 1.000 Infizierte nach 6000 Ticks), Bench p95 13-16 ms, Review ohne Blocker | tests/ bench/ docs/progress/M2.md | 197 Tests grün, Laufzeit 130 s
+2026-11-26 22:06 | M2 | hauptagent | ABNAHME | M2 bestanden; Korridor wirkt nur an dichten Wohnblöcken außerhalb der Zonenführung, Balancing offen bis M4/M5 | docs/progress/M2.md | bestanden
