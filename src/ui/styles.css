@@ -1,6 +1,6 @@
 /* All colors come from CSS variables set by palette-vars.ts. Sizes in rem so the UI scale (root font size) applies. */
 #ui {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--sz-text);
   font-size: 1rem;
 }

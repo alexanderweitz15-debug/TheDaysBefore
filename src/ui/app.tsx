@@ -8,6 +8,10 @@ import { applyPaletteVars } from './palette-vars';
 import { MainMenu } from './screens/main-menu';
 import { SettingsPanel } from './settings/settings-panel';
 import { settings } from './settings/store';
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
 import './styles.css';
 import { menuVisible, settingsOpen } from './ui-state';
 
