@@ -1,0 +1,207 @@
+/* All colors come from CSS variables set by palette-vars.ts. Sizes in rem so the UI scale (root font size) applies. */
+#ui {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--sz-text);
+  font-size: 1rem;
+}
+.sz-mono {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+}
+.sz-panel {
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--sz-panel) 82%, transparent);
+  border: 1px solid var(--sz-panel-border);
+  border-radius: 4px;
+  backdrop-filter: blur(3px);
+  animation: sz-fade-in 150ms ease-out;
+}
+@keyframes sz-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sz-panel {
+    animation: none;
+  }
+  .sz-btn {
+    transition: none;
+  }
+}
+.sz-btn {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--sz-panel-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  transition:
+    background 150ms,
+    border-color 150ms;
+}
+.sz-btn:hover:not([aria-disabled="true"]) {
+  background: var(--sz-accent-soft);
+  border-color: var(--sz-accent);
+}
+.sz-btn[aria-disabled="true"] {
+  color: var(--sz-text-dim);
+  cursor: not-allowed;
+}
+.sz-btn--compact {
+  width: auto;
+  justify-content: center;
+}
+:focus-visible {
+  outline: 2px solid var(--sz-focus);
+  outline-offset: 2px;
+}
+.sz-icon {
+  flex: none;
+  vertical-align: -2px;
+}
+.sz-reason {
+  font-size: 0.8125rem;
+  color: var(--sz-text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sz-menu {
+  position: absolute;
+  left: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20rem;
+  max-height: calc(100% - 4rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sz-menu h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  letter-spacing: 0.3em;
+}
+.sz-menu h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--sz-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.sz-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.sz-menu .sz-hide {
+  margin-top: 0.5rem;
+}
+
+.sz-show-hint {
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.sz-settings {
+  position: absolute;
+  left: 24rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24rem;
+  max-width: calc(100% - 26rem);
+  max-height: calc(100% - 4rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+.sz-settings header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.sz-settings h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.sz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.sz-field label,
+.sz-field .sz-label {
+  font-size: 0.875rem;
+}
+.sz-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--sz-accent);
+}
+.sz-field select {
+  font: inherit;
+  color: inherit;
+  background: var(--sz-panel);
+  border: 1px solid var(--sz-panel-border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+.sz-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.sz-field input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--sz-accent);
+}
+.sz-value {
+  font-size: 0.8125rem;
+  color: var(--sz-text-dim);
+}
+
+.sz-perf {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  min-width: 11rem;
+}
+.sz-perf dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 1rem;
+}
+.sz-perf dt {
+  color: var(--sz-text-dim);
+}
+.sz-perf dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
