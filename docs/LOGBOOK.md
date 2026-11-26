@@ -93,3 +93,6 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 21:45 | M2 | sim-engine | AGENT-NEU | Kontext 251.000 Tokens, Übergabe ergänzt; nächster Sim-Auftrag an frischen Agenten | docs/handover/sim-engine.md | -
 2026-11-26 22:06 | M2 | qa-review | REVIEW | Abschluss M2: Abnahmetests kalibriert (Korridor +68 %, jeder Seed höher; >= 1.000 Infizierte nach 6000 Ticks), Bench p95 13-16 ms, Review ohne Blocker | tests/ bench/ docs/progress/M2.md | 197 Tests grün, Laufzeit 130 s
 2026-11-26 22:06 | M2 | hauptagent | ABNAHME | M2 bestanden; Korridor wirkt nur an dichten Wohnblöcken außerhalb der Zonenführung, Balancing offen bis M4/M5 | docs/progress/M2.md | bestanden
+2026-11-26 22:09 | M2 | hauptagent | COMMIT | M2 in fünf Commits auf main, Pages-Workflow grün (Build 2:14 min inkl. Tests) | - | fb2d410
+2026-11-26 22:09 | M2 | hauptagent | STOPP | M2 auf main und Pages. Nächster Schritt M3 Kampf und Bau | - | -
+2026-11-26 22:09 | M3 | hauptagent | START | Meilenstein M3 Kampf und Bau begonnen | - | -
