@@ -2,7 +2,7 @@
 import type { Command } from './commands';
 import { hashHex } from './hash';
 import { SimHost } from './sim-host';
-import type { CreateWorld } from './types/sim';
+import type { CreateWorld, WorldOptions } from './types/sim';
 
 export interface HeadlessResult {
   hash: string;
@@ -13,12 +13,13 @@ export interface HeadlessResult {
 export function runHeadless(
   createWorld: CreateWorld,
   seed: number,
+  options: WorldOptions,
   ticks: number,
   commands: readonly Command[] = [],
   now: () => number = () => 0,
 ): HeadlessResult {
   const tickMs: number[] = [];
-  const host = new SimHost(seed, createWorld, (ms) => tickMs.push(ms), now);
+  const host = new SimHost(seed, options, createWorld, (ms) => tickMs.push(ms), now);
   for (const cmd of commands) host.enqueue(cmd);
   for (let i = 0; i < ticks; i++) host.runTick();
   return { hash: hashHex(host.hash()), ticks: host.tick, tickMs };

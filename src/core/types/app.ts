@@ -1,6 +1,8 @@
 // Contracts between main.ts, render (src/render) and ui (src/ui).
 import type { CommandInput } from '../commands';
+import type { CityMapData } from './map';
 import type { SimStats } from './messages';
+import type { DebugField, DebugFieldKind } from './sim';
 import type { SnapshotView } from './snapshot';
 
 /** Read-only view of the simulation for render and ui. */
@@ -13,6 +15,14 @@ export interface SimView {
   readonly stats: SimStats;
   /** Subscribes to new snapshots. Returns unsubscribe. */
   onSnapshot(cb: (s: SnapshotView) => void): () => void;
+  /** City map, null until the worker has generated it. */
+  readonly map: CityMapData | null;
+  /** Called once when the map is available (immediately if it already is). */
+  onMap(cb: (map: CityMapData) => void): () => void;
+  /** Latest requested debug field, or null. */
+  readonly debugField: DebugField | null;
+  /** Requests a debug overlay field with every snapshot; null switches it off. */
+  requestDebugField(kind: DebugFieldKind | null): void;
 }
 
 export interface CommandSink {

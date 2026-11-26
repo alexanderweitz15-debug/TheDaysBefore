@@ -33,3 +33,9 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 15:57 | M0 | hauptagent | FIX | Pages zeigte kein Bild, weil Quellcode statt Build ausgeliefert wurde. Workflow baut und deployt dist/ | .github/workflows/pages.yml | Build unter Unterpfad lokal geprüft
 2026-11-26 15:58 | M0 | hauptagent | FIX | CI-Test fehlgeschlagen, weil leere Ordner wie src/ai nicht im Repo landen. Platzhalter .gitkeep angelegt | src/**/.gitkeep | -
 2026-11-26 15:59 | M0 | hauptagent | ABNAHME | Pages-Workflow grün: Lint, 118 Tests, Build, Deploy | .github/workflows/pages.yml | bestanden
+2026-11-26 16:01 | M1 | hauptagent | START | Meilenstein M1 Stadt und Horde in derselben Session wie M0 begonnen | - | -
+2026-11-26 16:01 | M1 | hauptagent | ENTSCHEIDUNG | Mensch wünscht M1 in derselben Session trotz Regel ein Meilenstein pro Session | docs/DECISIONS.md | -
+2026-11-26 16:04 | M1 | hauptagent | PLAN | Plan M1 mit A1-A3, B1-B4, C1-C3; Schnittstellen map, snapshot v2, sim v2, messages | docs/plans/M1.md src/core/types/ src/data/city/ src/data/agents/ | -
+2026-11-26 16:04 | M1 | sim-engine | AUFTRAG | A1 Stadtgenerator, danach A2 Horde mit Flow-Fields und echter Welt | src/sim/ | -
+2026-11-26 16:04 | M1 | gameplay-ui | AUFTRAG | B1 Kartenrender, B2 Agenten, B3 Dichte-Textur, B4 Debug und HUD | src/render/ src/ui/ src/data/ | -
+2026-11-26 16:04 | M1 | qa-review | AUFTRAG | C1 Tests an Schnittstellen v2 anpassen, C2 Benchmark-Szenarien vorbereiten | tests/ bench/ | -

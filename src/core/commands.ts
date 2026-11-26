@@ -13,8 +13,11 @@ interface CommandBase<T extends string, P> {
 }
 
 export type SetGameSpeedCommand = CommandBase<'SetGameSpeed', { speed: GameSpeed }>;
-/** M0 test command for the dummy simulation: spawns `count` agents around a point (meters). */
-export type DebugSpawnCommand = CommandBase<'DebugSpawn', { x: number; y: number; count: number }>;
+/** Debug/sandbox spawn: `count` agents of `kind` (default zombie) in a disc around (x, y) meters. */
+export type DebugSpawnCommand = CommandBase<
+  'DebugSpawn',
+  { x: number; y: number; count: number; kind?: 'zombie' | 'civilian' }
+>;
 
 export type Command = SetGameSpeedCommand | DebugSpawnCommand;
 export type CommandType = Command['type'];

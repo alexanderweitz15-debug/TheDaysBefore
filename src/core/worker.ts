@@ -1,19 +1,32 @@
-// Web Worker entry: runs the SimHost on a timer and posts snapshots back.
+// Web Worker entry: generates the world, runs the SimHost on a timer and posts snapshots back.
 import { createWorld } from '../sim/world';
 import { SimHost } from './sim-host';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
-import { allocSnapshot, SNAPSHOT_MAGIC } from './types/snapshot';
+import type { DebugFieldKind } from './types/sim';
+import { snapshotByteLength, writeSnapshotHeader } from './types/snapshot';
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const POLL_MS = 4;
+const POOL_MAX = 4;
 
 let host: SimHost | null = null;
+let debugKind: DebugFieldKind | null = null;
+const pool: ArrayBuffer[] = [];
 let lastTime = 0;
 let windowStart = 0;
 let windowTicks = 0;
 let windowMsSum = 0;
 let windowMsMax = 0;
-const stats: SimStats = { tick: 0, speed: 1, ticksPerSecond: 0, tickMsAvg: 0, tickMsMax: 0, agentCount: 0 };
+const stats: SimStats = {
+  tick: 0,
+  speed: 1,
+  ticksPerSecond: 0,
+  tickMsAvg: 0,
+  tickMsMax: 0,
+  zombies: 0,
+  civilians: 0,
+  worldGenMs: 0,
+};
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -25,15 +38,35 @@ function onTickTimed(ms: number): void {
   if (ms > windowMsMax) windowMsMax = ms;
 }
 
+function takeBuffer(bytes: number): ArrayBuffer {
+  for (let i = 0; i < pool.length; i++) {
+    const b = pool[i] as ArrayBuffer;
+    if (b.byteLength >= bytes) {
+      pool.splice(i, 1);
+      return b;
+    }
+  }
+  // Grow with headroom so a growing horde does not reallocate every snapshot.
+  return new ArrayBuffer(Math.ceil(bytes * 1.25));
+}
+
 function sendSnapshot(h: SimHost): void {
-  const n = h.world.agentCount;
-  const snap = allocSnapshot(n);
-  snap.header.set([SNAPSHOT_MAGIC, h.tick, n, h.world.widthM, h.world.heightM, 0]);
-  h.world.writePositions(snap.positions);
+  const w = h.world;
+  const zc = w.zombieCount;
+  const cc = w.civilianCount;
+  const buffer = takeBuffer(snapshotByteLength(zc, cc));
+  const view = writeSnapshotHeader(buffer, h.tick, w.widthM, w.heightM, zc, cc);
+  w.writeZombies(view.zombies);
+  w.writeCivilians(view.civilians);
   stats.tick = h.tick;
   stats.speed = h.loop.speed;
-  stats.agentCount = n;
-  post({ type: 'snapshot', buffer: snap.buffer, stats: { ...stats } }, [snap.buffer]);
+  stats.zombies = zc;
+  stats.civilians = cc;
+  post({ type: 'snapshot', buffer, stats: { ...stats } }, [buffer]);
+  if (debugKind) {
+    const field = w.debugField(debugKind);
+    if (field) post({ type: 'debugField', field }, [field.data.buffer]);
+  }
 }
 
 function pump(): void {
@@ -62,13 +95,32 @@ function pump(): void {
 
 scope.onmessage = (ev: MessageEvent<ToWorker>) => {
   const msg = ev.data;
-  if (msg.type === 'init') {
-    host = new SimHost(msg.seed, createWorld, onTickTimed, () => performance.now());
-    lastTime = performance.now();
-    windowStart = lastTime;
-    sendSnapshot(host);
-    pump();
-  } else if (msg.type === 'command' && host) {
-    host.submit(msg.cmd);
+  switch (msg.type) {
+    case 'init': {
+      const t0 = performance.now();
+      try {
+        host = new SimHost(msg.seed, { size: msg.size }, createWorld, onTickTimed, () => performance.now());
+      } catch (err) {
+        post({ type: 'error', message: String(err), seed: msg.seed, commandLog: [] });
+        return;
+      }
+      stats.worldGenMs = performance.now() - t0;
+      // Structured clone copies the map; the worker keeps its own for the simulation.
+      post({ type: 'map', map: host.world.map, worldGenMs: stats.worldGenMs });
+      lastTime = performance.now();
+      windowStart = lastTime;
+      sendSnapshot(host);
+      pump();
+      break;
+    }
+    case 'command':
+      host?.submit(msg.cmd);
+      break;
+    case 'returnBuffer':
+      if (pool.length < POOL_MAX) pool.push(msg.buffer);
+      break;
+    case 'debugField':
+      debugKind = msg.kind;
+      break;
   }
 };

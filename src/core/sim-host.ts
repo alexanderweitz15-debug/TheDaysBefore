@@ -2,7 +2,7 @@
 import { type Command, type CommandInput, CommandQueue } from './commands';
 import { createHash, type HashState } from './hash';
 import { FixedStepLoop } from './loop';
-import type { CreateWorld, SimWorld } from './types/sim';
+import type { CreateWorld, SimWorld, WorldOptions } from './types/sim';
 
 export class SimHost {
   readonly world: SimWorld;
@@ -13,11 +13,12 @@ export class SimHost {
 
   constructor(
     readonly seed: number,
+    readonly options: WorldOptions,
     createWorld: CreateWorld,
     private readonly onTickTimed?: (ms: number) => void,
     private readonly now: () => number = () => 0,
   ) {
-    this.world = createWorld(seed);
+    this.world = createWorld(seed, options);
     this.loop = new FixedStepLoop(() => this.runTick());
   }
 
