@@ -27,3 +27,5 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 15:46 | M0 | hauptagent | COMMIT | Lokale Schriften | src/ui/ | 900ee26
 2026-11-26 15:49 | M0 | qa-review | REVIEW | A1, B1, B2 geprüft | docs/progress/M0.md | bestanden, keine Blocker, 6 niedrige Punkte
 2026-11-26 15:49 | M0 | hauptagent | ABNAHME | Alle sechs Kriterien von M0 geprüft | docs/progress/M0.md | bestanden
+2026-11-26 15:49 | M0 | hauptagent | COMMIT | Bericht M0 | docs/ | 14bae3f
+2026-11-26 15:49 | M0 | hauptagent | STOPP | M0 abgeschlossen. Nächster Schritt: M1 Stadt und Horde, Plan docs/plans/M1.md anlegen | - | -
