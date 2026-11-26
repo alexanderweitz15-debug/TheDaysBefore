@@ -3,7 +3,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { CityMapData } from '../../core/types/map';
 import { NONE_U8 } from '../../core/types/map';
 import type { DebugField } from '../../core/types/sim';
-import { OVERLAY_DENSITY_ALPHA_MAX, OVERLAY_DENSITY_FULL } from '../../data/render';
+import { OVERLAY_DENSITY_ALPHA_MAX, OVERLAY_DENSITY_FULL, OVERLAY_FIELD_FULL } from '../../data/render';
 import { palette } from '../palette';
 import { cameraView, type OverlayMode } from '../view-state';
 import { DensitySprite } from './density';
@@ -23,22 +23,40 @@ const DIRS: ReadonlyArray<readonly [number, number]> = [
 ];
 const ARROW_SPACING_PX = 14;
 
+const HEAT_KINDS = ['density', 'infection', 'noise', 'safety'] as const;
+type HeatKind = (typeof HEAT_KINDS)[number];
+
+function heatEntry(color: number, full: number) {
+  return {
+    sprite: new DensitySprite((color >> 16) & 255, (color >> 8) & 255, color & 255),
+    field: null as DebugField | null,
+    full,
+  };
+}
+
 export class OverlayLayer {
   readonly view = new Container();
   readonly grid = new GridLayer();
   private readonly flow = new Graphics();
   private readonly sectors = new Graphics();
-  private readonly density = new DensitySprite(
-    (palette.overlay.density >> 16) & 255,
-    (palette.overlay.density >> 8) & 255,
-    palette.overlay.density & 255,
-  );
+  /** One tinted grid sprite per field overlay. */
+  private readonly heat: Record<HeatKind, { sprite: DensitySprite; field: DebugField | null; full: number }> =
+    {
+      density: heatEntry(palette.overlay.density, OVERLAY_DENSITY_FULL),
+      infection: heatEntry(palette.overlay.infection, OVERLAY_FIELD_FULL),
+      noise: heatEntry(palette.overlay.noise, OVERLAY_FIELD_FULL),
+      safety: heatEntry(palette.overlay.safety, OVERLAY_FIELD_FULL),
+    };
   private flowKey = '';
   private flowField: DebugField | null = null;
-  private densityField: DebugField | null = null;
 
   constructor() {
-    this.view.addChild(this.density.view, this.sectors, this.flow, this.grid.view);
+    this.view.addChild(
+      ...HEAT_KINDS.map((k) => this.heat[k].sprite.view),
+      this.sectors,
+      this.flow,
+      this.grid.view,
+    );
   }
 
   setWorldSize(w: number, h: number): void {
@@ -97,7 +115,7 @@ export class OverlayLayer {
     this.grid.view.visible = mode === 'grid';
     this.sectors.visible = mode === 'sectors';
     this.flow.visible = mode === 'flow' && field?.kind === 'flow';
-    this.density.view.visible = mode === 'density' && field?.kind === 'density';
+    for (const k of HEAT_KINDS) this.heat[k].sprite.view.visible = mode === k && field?.kind === k;
     if (mode === 'grid') this.grid.setZoom(zoom);
     if (!field) return;
     if (mode === 'flow' && field.kind === 'flow') {
@@ -107,14 +125,13 @@ export class OverlayLayer {
         this.flowKey = key;
         this.drawFlow(field, zoom);
       }
-    } else if (mode === 'density' && field.kind === 'density' && field !== this.densityField) {
-      this.densityField = field;
-      this.density.ensure(field.widthCells, field.heightCells, field.cellSizeM);
-      this.density.fill((i) =>
-        Math.min(
-          OVERLAY_DENSITY_ALPHA_MAX,
-          ((field.data[i] as number) / OVERLAY_DENSITY_FULL) * OVERLAY_DENSITY_ALPHA_MAX,
-        ),
+    } else if (mode === 'density' || mode === 'infection' || mode === 'noise' || mode === 'safety') {
+      const h = this.heat[mode];
+      if (field.kind !== mode || field === h.field) return;
+      h.field = field;
+      h.sprite.ensure(field.widthCells, field.heightCells, field.cellSizeM);
+      h.sprite.fill((i) =>
+        Math.min(OVERLAY_DENSITY_ALPHA_MAX, ((field.data[i] as number) / h.full) * OVERLAY_DENSITY_ALPHA_MAX),
       );
     }
   }

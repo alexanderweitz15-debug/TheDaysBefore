@@ -2,13 +2,20 @@
 // Snapshot data is copied into own arrays indexed by stable id, so no snapshot view is held past the call.
 import { Particle, ParticleContainer, type Particle as ParticleType, type Texture } from 'pixi.js';
 import type { AgentSection } from '../../core/types/snapshot';
-import { AGENT_MAX_RADIUS_PX, AGENT_MAX_STEP_M, AGENT_MIN_RADIUS_PX } from '../../data/render';
+import {
+  AGENT_CULL_MARGIN_M,
+  AGENT_MAX_RADIUS_PX,
+  AGENT_MAX_STEP_M,
+  AGENT_MIN_RADIUS_PX,
+} from '../../data/render';
+import { cameraView } from '../view-state';
 
 export class AgentSet {
   readonly view: ParticleContainer;
   private readonly pool: ParticleType[] = [];
   private lastZoom = Number.NaN;
   private count = 0;
+  private poolGrew = false;
   private ids: Uint32Array = new Uint32Array(0);
   private prevPos: Float32Array = new Float32Array(0);
   private currPos: Float32Array = new Float32Array(0);
@@ -21,6 +28,9 @@ export class AgentSet {
     private readonly tint: number,
     private readonly radiusM: number,
     initialCapacity: number,
+    /** Kind codes this set draws (lookup by kind byte); null takes all. */
+    private readonly accept: Uint8Array | null = null,
+    private readonly minRadiusPx = AGENT_MIN_RADIUS_PX,
   ) {
     this.view = new ParticleContainer({ texture, dynamicProperties: { position: true } });
     this.grow(initialCapacity);
@@ -50,16 +60,22 @@ export class AgentSet {
 
   /** Copies a new snapshot section; the previous current state becomes the interpolation start. */
   ingest(s: AgentSection): void {
+    const { accept } = this;
     let maxId = -1;
-    for (let i = 0; i < s.count; i++) if ((s.ids[i] as number) > maxId) maxId = s.ids[i] as number;
+    for (let i = 0; i < s.count; i++) {
+      if (accept && !accept[s.kind[i] as number]) continue;
+      if ((s.ids[i] as number) > maxId) maxId = s.ids[i] as number;
+    }
     this.grow(Math.max(maxId + 1, this.currAlive.length));
     [this.prevPos, this.currPos] = [this.currPos, this.prevPos];
     [this.prevAlive, this.currAlive] = [this.currAlive, this.prevAlive];
     this.currAlive.fill(0);
     if (this.ids.length < s.count) this.ids = new Uint32Array(Math.max(s.count, this.ids.length * 2));
-    this.ids.set(s.ids.subarray(0, s.count));
+    let n = 0;
     for (let i = 0; i < s.count; i++) {
+      if (accept && !accept[s.kind[i] as number]) continue;
       const id = s.ids[i] as number;
+      this.ids[n++] = id;
       this.currPos[id * 2] = s.pos[i * 2] as number;
       this.currPos[id * 2 + 1] = s.pos[i * 2 + 1] as number;
       this.currAlive[id] = 1;
@@ -70,7 +86,7 @@ export class AgentSet {
         if (dx * dx + dy * dy > AGENT_MAX_STEP_M * AGENT_MAX_STEP_M) this.prevAlive[id] = 0;
       }
     }
-    this.count = s.count;
+    this.count = n;
   }
 
   /** Number of agents whose current position lies inside the rectangle (meters). No allocation. */
@@ -94,61 +110,67 @@ export class AgentSet {
   }
 
   private scaleFor(zoom: number): number {
-    const radiusPx = Math.min(AGENT_MAX_RADIUS_PX, Math.max(AGENT_MIN_RADIUS_PX, this.radiusM * zoom));
+    const radiusPx = Math.min(AGENT_MAX_RADIUS_PX, Math.max(this.minRadiusPx, this.radiusM * zoom));
     return (radiusPx * 2) / zoom / this.texSize;
   }
 
-  private resize(count: number, scale: number): void {
-    const children = this.view.particleChildren;
-    if (count < children.length) {
-      this.view.removeParticles(count, children.length);
-      return;
-    }
-    for (let i = children.length; i < count; i++) {
-      let p = this.pool[i];
-      if (!p) {
-        p = new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5, tint: this.tint });
-        this.pool[i] = p;
-      }
+  /** Particle for draw slot `k`. Slot k always holds pool[k], so static buffers stay valid between frames. */
+  private particle(k: number, scale: number): ParticleType {
+    let p = this.pool[k];
+    if (!p) {
+      p = new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5, tint: this.tint });
       p.scaleX = scale;
       p.scaleY = scale;
-      this.view.addParticle(p);
+      this.pool[k] = p;
+      this.poolGrew = true;
     }
+    return p;
   }
 
   setVisible(v: boolean): void {
     this.view.visible = v;
   }
 
+  /** Positions the particles of agents inside the camera rectangle (plus margin); others are not drawn. */
   update(alpha: number, zoom: number): void {
-    const n = this.count;
     const scale = this.scaleFor(zoom);
-    if (this.view.particleChildren.length !== n) this.resize(n, scale);
+    const out = this.view.particleChildren;
+    const hw = cameraView.width / 2 / zoom + AGENT_CULL_MARGIN_M;
+    const hh = cameraView.height / 2 / zoom + AGENT_CULL_MARGIN_M;
+    const minX = cameraView.cx - hw;
+    const maxX = cameraView.cx + hw;
+    const minY = cameraView.cy - hh;
+    const maxY = cameraView.cy + hh;
+    const a = Math.min(1, Math.max(0, alpha));
+    const { ids, currPos, prevPos, prevAlive } = this;
+    let k = 0;
+    this.poolGrew = false;
+    for (let j = 0; j < this.count; j++) {
+      const id = ids[j] as number;
+      const cx = currPos[id * 2] as number;
+      const cy = currPos[id * 2 + 1] as number;
+      let x = cx;
+      let y = cy;
+      if (prevAlive[id]) {
+        const px = prevPos[id * 2] as number;
+        const py = prevPos[id * 2 + 1] as number;
+        x = px + (cx - px) * a;
+        y = py + (cy - py) * a;
+      }
+      if (x < minX || x > maxX || y < minY || y > maxY) continue;
+      const o = this.particle(k, scale);
+      o.x = x;
+      o.y = y;
+      out[k++] = o;
+    }
+    out.length = k;
     if (zoom !== this.lastZoom) {
       this.lastZoom = zoom;
-      for (const p of this.view.particleChildren) {
+      for (const p of this.pool) {
         p.scaleX = scale;
         p.scaleY = scale;
       }
       this.view.update();
-    }
-    const out = this.view.particleChildren;
-    const a = Math.min(1, Math.max(0, alpha));
-    const { ids, currPos, prevPos, prevAlive } = this;
-    for (let j = 0; j < n; j++) {
-      const id = ids[j] as number;
-      const cx = currPos[id * 2] as number;
-      const cy = currPos[id * 2 + 1] as number;
-      const o = out[j] as ParticleType;
-      if (prevAlive[id]) {
-        const px = prevPos[id * 2] as number;
-        const py = prevPos[id * 2 + 1] as number;
-        o.x = px + (cx - px) * a;
-        o.y = py + (cy - py) * a;
-      } else {
-        o.x = cx;
-        o.y = cy;
-      }
-    }
+    } else if (this.poolGrew) this.view.update();
   }
 }

@@ -15,7 +15,11 @@ export function installOverlayHotkey(sim: SimView): () => void {
     const next =
       OVERLAY_MODES[(OVERLAY_MODES.indexOf(overlayMode.value) + 1) % OVERLAY_MODES.length] ?? 'off';
     overlayMode.value = next;
-    sim.requestDebugField(next === 'flow' || next === 'density' ? next : null);
+    sim.requestDebugField(
+      next === 'flow' || next === 'density' || next === 'infection' || next === 'noise' || next === 'safety'
+        ? next
+        : null,
+    );
   };
   window.addEventListener('keydown', onKey);
   return () => window.removeEventListener('keydown', onKey);

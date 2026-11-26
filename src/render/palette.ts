@@ -39,6 +39,10 @@ export const palette = {
     chemical: sem(0x8fa3b8, 'cloud'),
     nanotech: sem(0x2ee6d6, 'grid'),
   },
+  /** Patient zero highlight on top of the viral color; neither white nor green nor red. */
+  patientZero: sem(0xf0b8ff, 'ring'),
+  /** Stylized blood decal (violence setting). */
+  blood: 0x5a1218,
   radio: sem(0xffffff, 'concentric'),
   alert: sem(0xe5323c, 'exclamation'),
 
@@ -89,6 +93,9 @@ export const palette = {
   overlay: {
     flow: 0x6fa3d9,
     density: 0xffb347,
+    infection: 0xb04bff,
+    noise: 0xffd166,
+    safety: 0x3d7bff,
   },
 
   // UI tokens, exported as CSS variables by the UI (see ui/palette-vars.ts).

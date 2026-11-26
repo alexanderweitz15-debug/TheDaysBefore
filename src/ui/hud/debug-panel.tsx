@@ -1,11 +1,12 @@
 // Debug panel (development only): DebugSpawn of zombies at the cursor or as a large horde along the map edges.
 import { useEffect } from 'preact/hooks';
 import type { CommandSink, SimView } from '../../core/types/app';
+import { KEY_SITES } from '../../core/types/map';
 import { DEBUG_SPAWN } from '../../data/dev/debug-spawn';
 import { screenToWorld } from '../../render/view-state';
 import { t } from '../i18n';
 import { settings } from '../settings/store';
-import { debugOpen, spawnArmed } from '../ui-state';
+import { debugOpen, outbreakArmed, spawnArmed } from '../ui-state';
 
 const LOCAL_PLAYER = 0;
 
@@ -16,6 +17,26 @@ function debugAvailable(): boolean {
 
 function spawn(commands: CommandSink, x: number, y: number, count: number): void {
   commands.submit({ playerId: LOCAL_PLAYER, type: 'DebugSpawn', payload: { x, y, count, kind: 'zombie' } });
+}
+
+function outbreak(commands: CommandSink, x: number, y: number): void {
+  commands.submit({ playerId: LOCAL_PLAYER, type: 'StartOutbreak', payload: { x, y, family: 'viral' } });
+}
+
+/** Center of the first hospital building in meters, or null. */
+function hospitalCenter(sim: SimView): { x: number; y: number } | null {
+  const m = sim.map;
+  if (!m) return null;
+  const code = KEY_SITES.indexOf('hospital');
+  const b = m.buildings;
+  for (let i = 0; i < b.count; i++) {
+    if (b.keySite[i] === code)
+      return {
+        x: ((b.x[i] as number) + (b.w[i] as number) / 2) * m.cellSizeM,
+        y: ((b.y[i] as number) + (b.h[i] as number) / 2) * m.cellSizeM,
+      };
+  }
+  return null;
 }
 
 /** Points spread evenly along the inset border of the world. */
@@ -45,10 +66,17 @@ export function DebugPanel({ sim, commands }: { sim: SimView; commands: CommandS
       }
     };
     const onDown = (e: PointerEvent): void => {
-      if (!spawnArmed.value || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return;
+      if (
+        !(spawnArmed.value || outbreakArmed.value) ||
+        e.button !== 0 ||
+        !(e.target instanceof HTMLCanvasElement)
+      )
+        return;
       const p = screenToWorld(e.clientX, e.clientY);
-      spawn(commands, p.x, p.y, DEBUG_SPAWN.cursorCount);
+      if (spawnArmed.value) spawn(commands, p.x, p.y, DEBUG_SPAWN.cursorCount);
+      else outbreak(commands, p.x, p.y);
       spawnArmed.value = false;
+      outbreakArmed.value = false;
     };
     const onKey = (e: KeyboardEvent): void => {
       if (e.repeat || !debugAvailable()) return;
@@ -88,6 +116,7 @@ export function DebugPanel({ sim, commands }: { sim: SimView; commands: CommandS
       spawn(commands, x, y, DEBUG_SPAWN.hordeBatch);
     }
   };
+  const hospital = hospitalCenter(sim);
   return (
     <aside class="sz-panel sz-debug" data-tutorial-id="debug-panel" aria-labelledby="debug-title">
       <h2 id="debug-title">{t('debug.title')}</h2>
@@ -103,6 +132,24 @@ export function DebugPanel({ sim, commands }: { sim: SimView; commands: CommandS
       </button>
       <button type="button" class="sz-btn" data-tutorial-id="debug-spawn-horde" onClick={horde}>
         {t('debug.horde')}
+      </button>
+      <button
+        type="button"
+        class="sz-btn"
+        data-tutorial-id="debug-outbreak-cursor"
+        onClick={() => (outbreakArmed.value = !outbreakArmed.value)}
+      >
+        {outbreakArmed.value ? t('debug.outbreakCursor.armed') : t('debug.outbreakCursor')}
+      </button>
+      <button
+        type="button"
+        class="sz-btn"
+        data-tutorial-id="debug-outbreak-hospital"
+        title={hospital ? undefined : t('debug.outbreakHospital.none')}
+        aria-disabled={hospital ? undefined : 'true'}
+        onClick={() => hospital && outbreak(commands, hospital.x, hospital.y)}
+      >
+        {t('debug.outbreakHospital')}
       </button>
       <button type="button" class="sz-btn sz-btn--compact" onClick={() => (debugOpen.value = false)}>
         {t('debug.close')}

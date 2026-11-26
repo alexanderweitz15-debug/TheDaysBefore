@@ -241,3 +241,26 @@
 .sz-debug p {
   margin: 0;
 }
+
+.sz-hud {
+  position: absolute;
+  left: 50%;
+  top: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+}
+.sz-hud__label {
+  color: var(--sz-text-dim);
+}
+.sz-tool-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  border-color: var(--sz-accent);
+}

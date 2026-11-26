@@ -8,10 +8,12 @@ import {
   type Settings,
   setSetting,
   settings,
+  VIOLENCE_LEVELS,
+  type Violence,
 } from './store';
 
 interface SliderProps {
-  id: 'uiScale' | 'cameraSpeed' | 'spriteLimit';
+  id: 'uiScale' | 'cameraSpeed' | 'spriteLimit' | 'corpseLimit';
   unit?: string;
   label: string;
   tip: string;
@@ -44,7 +46,14 @@ function Slider({ id, label, tip, unit = ' %' }: SliderProps) {
 }
 
 interface CheckProps {
-  id: 'perfOverlay' | 'edgeScroll' | 'buildings3d' | 'devTools';
+  id:
+    | 'perfOverlay'
+    | 'edgeScroll'
+    | 'buildings3d'
+    | 'devTools'
+    | 'patternMode'
+    | 'reducedMotion'
+    | 'confirmRemoval';
   label: string;
   tip: string;
 }
@@ -99,6 +108,34 @@ export function SettingsPanel() {
         unit=""
         label={t('settings.spriteLimit')}
         tip={t('settings.spriteLimit.tip')}
+      />
+      <Slider
+        id="corpseLimit"
+        unit=""
+        label={t('settings.corpseLimit')}
+        tip={t('settings.corpseLimit.tip')}
+      />
+      <div class="sz-field" title={t('settings.violence.tip')}>
+        <label for="set-violence">{t('settings.violence')}</label>
+        <select
+          id="set-violence"
+          data-tutorial-id="settings-violence"
+          value={settings.violence.value}
+          onChange={(e) => setSetting('violence', e.currentTarget.value as Violence)}
+        >
+          {VIOLENCE_LEVELS.map((v) => (
+            <option key={v} value={v}>
+              {t(`settings.violence.${v}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Check id="patternMode" label={t('settings.patternMode')} tip={t('settings.patternMode.tip')} />
+      <Check id="reducedMotion" label={t('settings.reducedMotion')} tip={t('settings.reducedMotion.tip')} />
+      <Check
+        id="confirmRemoval"
+        label={t('settings.confirmRemoval')}
+        tip={t('settings.confirmRemoval.tip')}
       />
       <Check id="devTools" label={t('settings.devTools')} tip={t('settings.devTools.tip')} />
       <button

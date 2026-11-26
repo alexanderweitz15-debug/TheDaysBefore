@@ -4,8 +4,10 @@ import type { CreateRenderer } from '../core/types/app';
 import { Camera } from './camera';
 import { FpsMeter } from './fps';
 import { AgentsLayer } from './layers/agents';
+import { CorpseLayer } from './layers/corpses';
 import { MapLayer } from './layers/map-layer';
 import { OverlayLayer } from './layers/overlay';
+import { ZonesLayer } from './layers/zones';
 import { palette } from './palette';
 import { overlayMode } from './view-state';
 
@@ -24,10 +26,14 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   const mapLayer = new MapLayer(app.renderer);
   const agents = new AgentsLayer(app.renderer);
   const overlay = new OverlayLayer();
+  const corpses = new CorpseLayer(app.renderer);
+  const zones = new ZonesLayer();
   world.addChild(
     mapLayer.view,
-    agents.civilians.view,
-    agents.zombies.view,
+    corpses.view,
+    zones.view,
+    ...agents.civilianViews.map((c) => c.view),
+    ...agents.zombieSets.map((z) => z.view),
     agents.density.view,
     overlay.view,
   );
@@ -43,6 +49,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   };
   if (sim.curr) onSnapshot(sim.curr);
   const unsub = sim.onSnapshot(onSnapshot);
+  const unsubZones = sim.onZones((z) => zones.setZones(z));
   const unsubMap = sim.onMap((m) => {
     mapLayer.setMap(m);
     overlay.setMap(m);
@@ -55,7 +62,9 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     meter.tick(now);
     camera.update(ticker.deltaMS);
     mapLayer.update();
-    agents.update(sim.curr, sim.alpha(now), camera.zoom);
+    agents.update(sim.curr, sim.alpha(now), camera.zoom, now);
+    corpses.update(sim.curr?.corpses ?? null, camera.zoom);
+    zones.update(camera.zoom);
     overlay.update(overlayMode.peek(), sim.debugField, camera.zoom);
   });
 
@@ -64,6 +73,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     destroy: () => {
       unsub();
       unsubMap();
+      unsubZones();
       camera.destroy();
       app.destroy(true, { children: true });
     },
