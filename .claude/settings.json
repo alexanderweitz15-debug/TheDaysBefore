@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/restore-context.mjs\" compact",
+            "timeout": 30,
+            "statusMessage": "Stelle Projektkontext wieder her..."
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/restore-context.mjs\" startup",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

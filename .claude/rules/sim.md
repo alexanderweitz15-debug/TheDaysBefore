@@ -1,0 +1,11 @@
+---
+paths:
+  - "src/sim/**"
+  - "src/ai/**"
+---
+- Deterministisch: nur `rng` aus `src/core/rng.ts`, kein Math.random, kein Date.now, kein performance.now.
+- Fester Tick 20 Hz. Zeit nur über `tick`.
+- Kein Import aus `src/render/` oder `src/ui/`. Kein DOM.
+- Agenten als Structure of Arrays in TypedArrays, keine Objekte pro Zombie oder Zivilist.
+- Keine Allokationen im Tick (Pools, vorab reservierte Buffer).
+- Jede Regel hat einen Test mit festem Seed.
