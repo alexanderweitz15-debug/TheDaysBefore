@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Command } from '../src/core/commands';
 import { SimHost } from '../src/core/sim-host';
-import type { WorldOptions } from '../src/core/types/sim';
+import type { SimWorld, WorldOptions } from '../src/core/types/sim';
 import { CITY_SIZES } from '../src/data/city/generator';
 import { createWorld } from '../src/sim/world';
 
@@ -12,6 +12,12 @@ import { createWorld } from '../src/sim/world';
 const TICK_TARGET_MS = 20;
 /** GDD section 4 / plan M1: loading a 2 x 2 km city. */
 const GEN_TARGET_MS = 5000;
+/** Zombie attacks remove civilians (A3 spread is fast); a run may lose up to 5 % of them. Load check only. */
+const CIVILIAN_LOSS_TOLERANCE = 0.95;
+/** Infected civilians turn into zombies during the run; up to 3 % more zombies than spawned is fine. */
+const ZOMBIE_GAIN_TOLERANCE = 1.03;
+/** The outbreak scenario keeps its spawned horde (sanity of the setup). */
+const OUTBREAK_MIN_ZOMBIES = 30_000;
 /** Allowed avg regression against the reference. */
 const MAX_REGRESSION = 0.1;
 const REFERENCE_PATH = fileURLToPath(new URL('./reference.json', import.meta.url));
@@ -26,8 +32,12 @@ interface TickScenario {
   measureTicks: number;
   /** Pre-stamped commands applied during warm-up. */
   commands: Command[];
-  expectedZombies: number;
-  expectedCivilians: number;
+  /** Zombie count after the run (exact); omit for scenarios where it changes. */
+  expectedZombies?: number;
+  /** Civilians after the run: between this value times CIVILIAN_LOSS_TOLERANCE and this value (attacks remove some). */
+  expectedCivilians?: number;
+  /** Extra checks on the finished world; returns error messages. */
+  verify?: (world: SimWorld) => string[];
 }
 
 /** Measures createWorld wall time. One discarded warm-up run, then `runs` measured runs. */
@@ -74,6 +84,28 @@ const SCENARIOS: Scenario[] = [
     expectedZombies: 30_000,
     expectedCivilians: CITY_SIZES.medium.population,
   },
+  {
+    // Outbreak at the city center with a full horde: after the 30 s city alarm the civilians flee, zombies attack
+    // and infect, so flight, perception, attacks, incubation and the safety field are all under load.
+    kind: 'tick',
+    name: 'outbreak-medium',
+    seed: 1,
+    options: { size: 'medium' },
+    warmupTicks: 700,
+    measureTicks: 600,
+    commands: [
+      { tick: 0, playerId: 0, type: 'StartOutbreak', payload: { x: 1000, y: 1000, family: 'viral' } },
+      ...spawnBursts(30_000, 1000, 'zombie', 0),
+    ],
+    expectedCivilians: CITY_SIZES.medium.population,
+    verify: (w) => {
+      const errors: string[] = [];
+      if (w.counters.outbreakTick < 0) errors.push('outbreak did not start');
+      if (w.zombieCount < OUTBREAK_MIN_ZOMBIES)
+        errors.push(`expected at least ${OUTBREAK_MIN_ZOMBIES} zombies, got ${w.zombieCount}`);
+      return errors;
+    },
+  },
   { kind: 'gen', name: 'gen-medium', seed: 1, options: { size: 'medium' }, runs: 8 },
 ];
 
@@ -111,8 +143,21 @@ function runTick(sc: TickScenario): Outcome {
   for (let i = 0; i < sc.measureTicks; i++) host.runTick();
   const { zombieCount: z, civilianCount: c } = host.world;
   const errors: string[] = [];
-  if (z !== sc.expectedZombies) errors.push(`expected ${sc.expectedZombies} zombies, got ${z}`);
-  if (c !== sc.expectedCivilians) errors.push(`expected ${sc.expectedCivilians} civilians, got ${c}`);
+  if (
+    sc.expectedZombies !== undefined &&
+    (z < sc.expectedZombies || z > sc.expectedZombies * ZOMBIE_GAIN_TOLERANCE)
+  )
+    errors.push(
+      `expected ${sc.expectedZombies} to ${sc.expectedZombies * ZOMBIE_GAIN_TOLERANCE} zombies, got ${z}`,
+    );
+  if (
+    sc.expectedCivilians !== undefined &&
+    (c > sc.expectedCivilians || c < sc.expectedCivilians * CIVILIAN_LOSS_TOLERANCE)
+  )
+    errors.push(
+      `expected ${sc.expectedCivilians * CIVILIAN_LOSS_TOLERANCE} to ${sc.expectedCivilians} civilians, got ${c}`,
+    );
+  if (sc.verify) errors.push(...sc.verify(host.world));
   const stats = summarize(timings);
   return { stats, gated: stats.p95, targetMs: TICK_TARGET_MS, detail: `zombies=${z} civilians=${c}`, errors };
 }

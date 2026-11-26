@@ -14,7 +14,10 @@ interface Spec {
   heightM: number;
   zombies: { pos: number[]; kind: number[] };
   civilians: { pos: number[]; kind: number[] };
+  corpses?: { pos: number[]; kind: number[] };
 }
+
+const NO_AGENTS = { pos: [], kind: [] };
 
 function fillSection(sec: AgentSection, idBase: number, d: { pos: number[]; kind: number[] }): void {
   for (let i = 0; i < sec.count; i++) {
@@ -27,10 +30,13 @@ function fillSection(sec: AgentSection, idBase: number, d: { pos: number[]; kind
 function build(spec: Spec, buffer?: ArrayBuffer): ArrayBuffer {
   const zc = spec.zombies.kind.length;
   const cc = spec.civilians.kind.length;
-  const buf = buffer ?? new ArrayBuffer(snapshotByteLength(zc, cc));
-  const view = writeSnapshotHeader(buf, spec.tick, spec.widthM, spec.heightM, zc, cc);
+  const dead = spec.corpses ?? NO_AGENTS;
+  const dc = dead.kind.length;
+  const buf = buffer ?? new ArrayBuffer(snapshotByteLength(zc, cc, dc));
+  const view = writeSnapshotHeader(buf, spec.tick, spec.widthM, spec.heightM, zc, cc, dc);
   fillSection(view.zombies, 10, spec.zombies);
   fillSection(view.civilians, 5000, spec.civilians);
+  fillSection(view.corpses, 90000, dead);
   return buf;
 }
 
@@ -40,28 +46,31 @@ const SPEC: Spec = {
   heightM: 1000,
   zombies: { pos: [1.5, 2.25, 100, 0.125, 1999.5, 3], kind: [0, 1, 2] },
   civilians: { pos: [7, 8, 9, 10], kind: [3, 4] },
+  corpses: { pos: [50, 60, 70, 80, 90, 100, 110, 120], kind: [0, 1, 2, 5] },
 };
 
-describe('snapshot v2', () => {
-  it('magic spells SZN2 and header is 8 words', () => {
-    expect(SNAPSHOT_MAGIC).toBe(0x535a4e32);
-    expect(String.fromCharCode(0x53, 0x5a, 0x4e, 0x32)).toBe('SZN2');
+describe('snapshot v3', () => {
+  it('magic spells SZN3 and header is 8 words', () => {
+    expect(SNAPSHOT_MAGIC).toBe(0x535a4e33);
+    expect(String.fromCharCode(0x53, 0x5a, 0x4e, 0x33)).toBe('SZN3');
     expect(SNAPSHOT_HEADER_U32).toBe(8);
   });
 
   it('snapshotByteLength = header + 12 bytes per agent + kind bytes padded to 4', () => {
-    expect(snapshotByteLength(0, 0)).toBe(SNAPSHOT_HEADER_U32 * 4);
-    expect(snapshotByteLength(1, 0)).toBe(32 + 12 + 4);
-    expect(snapshotByteLength(3, 2)).toBe(32 + 5 * 12 + 8);
-    expect(snapshotByteLength(4, 0)).toBe(32 + 4 * 12 + 4);
-    expect(snapshotByteLength(1000, 500)).toBe(32 + 1500 * 12 + 1500);
+    expect(snapshotByteLength(0, 0, 0)).toBe(SNAPSHOT_HEADER_U32 * 4);
+    expect(snapshotByteLength(1, 0, 0)).toBe(32 + 12 + 4);
+    expect(snapshotByteLength(3, 2, 0)).toBe(32 + 5 * 12 + 8);
+    expect(snapshotByteLength(4, 0, 0)).toBe(32 + 4 * 12 + 4);
+    expect(snapshotByteLength(1000, 500, 0)).toBe(32 + 1500 * 12 + 1500);
   });
 
   it('length is monotonic in the total and independent of the zombie/civilian split', () => {
-    expect(snapshotByteLength(7, 3)).toBe(snapshotByteLength(3, 7));
-    let prev = snapshotByteLength(0, 0);
+    expect(snapshotByteLength(7, 3, 0)).toBe(snapshotByteLength(3, 7, 0));
+    expect(snapshotByteLength(7, 3, 5)).toBe(snapshotByteLength(5, 3, 7));
+    expect(snapshotByteLength(2, 2, 2)).toBe(32 + 6 * 12 + 8);
+    let prev = snapshotByteLength(0, 0, 0);
     for (let n = 1; n < 40; n++) {
-      const len = snapshotByteLength(n, 0);
+      const len = snapshotByteLength(n, 0, 0);
       expect(len).toBeGreaterThan(prev);
       prev = len;
     }
@@ -71,7 +80,8 @@ describe('snapshot v2', () => {
     const buf = build(SPEC);
     const h = new Uint32Array(buf, 0, SNAPSHOT_HEADER_U32);
     expect(Array.from(h.subarray(0, 6))).toEqual([SNAPSHOT_MAGIC, 1234, 3, 2, 2000, 1000]);
-    expect(h[6]).toBe(2);
+    expect(h[6]).toBe(4); // corpse count
+    expect(h[7]).toBe(3); // layout version
   });
 
   it('roundtrips both sections', () => {
@@ -87,13 +97,17 @@ describe('snapshot v2', () => {
     expect(Array.from(view.civilians.ids)).toEqual([5000, 5003]);
     expect(Array.from(view.civilians.pos)).toEqual(SPEC.civilians.pos);
     expect(Array.from(view.civilians.kind)).toEqual([3, 4]);
+    expect(view.corpses.count).toBe(4);
+    expect(Array.from(view.corpses.ids)).toEqual([90000, 90003, 90006, 90009]);
+    expect(Array.from(view.corpses.pos)).toEqual(SPEC.corpses?.pos);
+    expect(Array.from(view.corpses.kind)).toEqual([0, 1, 2, 5]);
   });
 
   it('writeSnapshotHeader returns views that agree with readSnapshot', () => {
     const zc = 3;
     const cc = 2;
-    const buf = new ArrayBuffer(snapshotByteLength(zc, cc));
-    const w = writeSnapshotHeader(buf, 9, 64, 32, zc, cc);
+    const buf = new ArrayBuffer(snapshotByteLength(zc, cc, 4));
+    const w = writeSnapshotHeader(buf, 9, 64, 32, zc, cc, 4);
     const r = readSnapshot(buf);
     expect(r.tick).toBe(w.tick);
     expect(r.zombies.ids.byteOffset).toBe(w.zombies.ids.byteOffset);
@@ -102,20 +116,25 @@ describe('snapshot v2', () => {
     expect(r.civilians.ids.byteOffset).toBe(w.civilians.ids.byteOffset);
     expect(r.civilians.pos.byteOffset).toBe(w.civilians.pos.byteOffset);
     expect(r.civilians.kind.byteOffset).toBe(w.civilians.kind.byteOffset);
+    expect(r.corpses.count).toBe(4);
+    expect(r.corpses.ids.byteOffset).toBe(w.corpses.ids.byteOffset);
+    expect(r.corpses.pos.byteOffset).toBe(w.corpses.pos.byteOffset);
+    expect(r.corpses.kind.byteOffset).toBe(w.corpses.kind.byteOffset);
   });
 
   it('typed array views are aligned and sections do not overlap', () => {
-    for (const [zc, cc] of [
-      [0, 0],
-      [1, 0],
-      [0, 1],
-      [3, 2],
-      [5, 7],
-      [101, 33],
+    for (const [zc, cc, dc] of [
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [3, 2, 1],
+      [5, 7, 3],
+      [101, 33, 17],
     ] as const) {
-      const buf = new ArrayBuffer(snapshotByteLength(zc, cc));
-      const v = writeSnapshotHeader(buf, 1, 10, 10, zc, cc);
-      for (const sec of [v.zombies, v.civilians]) {
+      const buf = new ArrayBuffer(snapshotByteLength(zc, cc, dc));
+      const v = writeSnapshotHeader(buf, 1, 10, 10, zc, cc, dc);
+      for (const sec of [v.zombies, v.civilians, v.corpses]) {
         expect(sec.ids.byteOffset % 4).toBe(0);
         expect(sec.pos.byteOffset % 4).toBe(0);
       }
@@ -124,8 +143,11 @@ describe('snapshot v2', () => {
         v.zombies.pos,
         v.civilians.ids,
         v.civilians.pos,
+        v.corpses.ids,
+        v.corpses.pos,
         v.zombies.kind,
         v.civilians.kind,
+        v.corpses.kind,
       ]
         .filter((a) => a.byteLength > 0)
         .map((a) => [a.byteOffset, a.byteOffset + a.byteLength] as const)
@@ -165,29 +187,34 @@ describe('snapshot v2', () => {
   });
 
   it('a larger reused buffer works: views cover only the counts, header is rewritten', () => {
-    const big = new ArrayBuffer(snapshotByteLength(500, 500));
+    const big = new ArrayBuffer(snapshotByteLength(500, 500, 500));
     new Uint8Array(big).fill(0xab); // stale content from an earlier, larger snapshot
     build(SPEC, big);
     const v = readSnapshot(big);
     expect(v.tick).toBe(1234);
     expect(v.zombies.count).toBe(3);
     expect(v.civilians.count).toBe(2);
+    expect(v.corpses.count).toBe(4);
     expect(v.zombies.pos.length).toBe(6);
     expect(v.civilians.ids.length).toBe(2);
     expect(Array.from(v.zombies.pos)).toEqual(SPEC.zombies.pos);
     expect(Array.from(v.civilians.kind)).toEqual([3, 4]);
     // Reuse again with different counts in the same buffer.
-    build({ ...SPEC, tick: 1, zombies: { pos: [1, 2], kind: [9] }, civilians: { pos: [], kind: [] } }, big);
+    build(
+      { ...SPEC, tick: 1, zombies: { pos: [1, 2], kind: [9] }, civilians: NO_AGENTS, corpses: NO_AGENTS },
+      big,
+    );
     const v2 = readSnapshot(big);
     expect(v2.tick).toBe(1);
     expect(v2.zombies.count).toBe(1);
     expect(v2.civilians.count).toBe(0);
+    expect(v2.corpses.count).toBe(0);
     expect(Array.from(v2.zombies.kind)).toEqual([9]);
   });
 
   it('a buffer that is too small throws', () => {
-    const small = new ArrayBuffer(snapshotByteLength(1, 1));
-    expect(() => writeSnapshotHeader(small, 1, 10, 10, 50, 50)).toThrow();
+    const small = new ArrayBuffer(snapshotByteLength(1, 1, 1));
+    expect(() => writeSnapshotHeader(small, 1, 10, 10, 50, 50, 50)).toThrow();
   });
 
   it('wrong magic throws, including a v1 magic', () => {
@@ -196,6 +223,8 @@ describe('snapshot v2', () => {
     expect(() => readSnapshot(buf)).toThrow(/bad magic/);
     new Uint32Array(buf, 0, 1)[0] = 0x535a4e31;
     expect(() => readSnapshot(buf)).toThrow(/bad magic/);
+    new Uint32Array(buf, 0, 1)[0] = 0x535a4e32; // v2 snapshots are no longer readable
+    expect(() => readSnapshot(buf)).toThrow(/bad magic/);
   });
 
   it('zeroed buffer throws', () => {
@@ -203,21 +232,26 @@ describe('snapshot v2', () => {
   });
 
   it('count 0 in both sections yields empty views', () => {
-    const buf = build({ ...SPEC, zombies: { pos: [], kind: [] }, civilians: { pos: [], kind: [] } });
+    const buf = build({ ...SPEC, zombies: NO_AGENTS, civilians: NO_AGENTS, corpses: NO_AGENTS });
     expect(buf.byteLength).toBe(SNAPSHOT_HEADER_U32 * 4);
     const v = readSnapshot(buf);
     expect(v.zombies.count).toBe(0);
     expect(v.civilians.count).toBe(0);
+    expect(v.corpses.count).toBe(0);
     expect(v.zombies.pos.length).toBe(0);
     expect(v.civilians.kind.length).toBe(0);
     expect(v.widthM).toBe(2000);
   });
 
-  it('one section empty, the other filled', () => {
-    const onlyCiv = readSnapshot(build({ ...SPEC, zombies: { pos: [], kind: [] } }));
+  it('one section empty, the others filled', () => {
+    const onlyCorpses = readSnapshot(build({ ...SPEC, zombies: NO_AGENTS, civilians: NO_AGENTS }));
+    expect(onlyCorpses.zombies.count + onlyCorpses.civilians.count).toBe(0);
+    expect(Array.from(onlyCorpses.corpses.kind)).toEqual([0, 1, 2, 5]);
+    expect(Array.from(onlyCorpses.corpses.pos)).toEqual(SPEC.corpses?.pos);
+    const onlyCiv = readSnapshot(build({ ...SPEC, zombies: NO_AGENTS }));
     expect(onlyCiv.zombies.count).toBe(0);
     expect(Array.from(onlyCiv.civilians.pos)).toEqual(SPEC.civilians.pos);
-    const onlyZ = readSnapshot(build({ ...SPEC, civilians: { pos: [], kind: [] } }));
+    const onlyZ = readSnapshot(build({ ...SPEC, civilians: NO_AGENTS }));
     expect(onlyZ.civilians.count).toBe(0);
     expect(Array.from(onlyZ.zombies.kind)).toEqual([0, 1, 2]);
   });
@@ -229,8 +263,9 @@ describe('snapshot v2', () => {
   });
 
   it('keeps ids as full uint32 and kinds as full bytes', () => {
-    const buf = new ArrayBuffer(snapshotByteLength(1, 1));
-    const v = writeSnapshotHeader(buf, 0, 1, 1, 1, 1);
+    const buf = new ArrayBuffer(snapshotByteLength(1, 1, 1));
+    const v = writeSnapshotHeader(buf, 0, 1, 1, 1, 1, 1);
+    v.corpses.kind[0] = 77;
     v.zombies.ids[0] = 0xffffffff;
     v.zombies.kind[0] = 255;
     v.civilians.kind[0] = 128;
@@ -238,5 +273,6 @@ describe('snapshot v2', () => {
     expect(r.zombies.ids[0]).toBe(0xffffffff);
     expect(r.zombies.kind[0]).toBe(255);
     expect(r.civilians.kind[0]).toBe(128);
+    expect(r.corpses.kind[0]).toBe(77);
   });
 });

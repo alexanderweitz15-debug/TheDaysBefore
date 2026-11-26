@@ -1,5 +1,6 @@
 // Core statement of M1: hordes flow through the city towards civilians (GDD 8 rules 1 to 3).
 import { describe, expect, it } from 'vitest';
+import { ATTACK_REACH_M, CIVILIAN_HP } from '../src/data/zombies/viral-types';
 import { CityWorld } from '../src/sim/world';
 
 const CHECK_EVERY = 600;
@@ -70,8 +71,21 @@ describe('horde flow (M1: hordes flow through the city)', () => {
     const start = meanNearestDistance(w);
     expect(start).toBeGreaterThan(5);
     expect(start).toBeLessThan(25);
-    for (let t = 0; t < 400; t++) w.step(t);
-    expect(meanNearestDistance(w)).toBeLessThan(2);
+    // The victim flees after the first hit (M2), so check the approach and the hit, not the end state.
+    let victim = -1;
+    for (let i = 0; i < w.civilians.highWater; i++) if (w.civilians.alive[i]) victim = i;
+    let closest = start;
+    let hit = false;
+    for (let t = 0; t < 400 && !hit; t++) {
+      w.step(t);
+      if (w.civilians.alive[victim]) closest = Math.min(closest, meanNearestDistance(w));
+      hit =
+        !w.civilians.alive[victim] ||
+        (w.civilians.hp[victim] as number) < CIVILIAN_HP ||
+        (w.s.ct.turnTick[victim] as number) >= 0;
+    }
+    expect(hit).toBe(true);
+    expect(closest).toBeLessThanOrEqual(ATTACK_REACH_M + 0.5);
   });
 
   it('overlapping zombies are pushed apart by separation (rule 4)', () => {

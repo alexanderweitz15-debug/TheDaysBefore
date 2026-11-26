@@ -1,10 +1,17 @@
-// Shared test doubles for the core tests: a tiny valid map and a fake SimWorld (v2). Does not import src/sim.
+// Shared test doubles for the core tests: a tiny valid map and a fake SimWorld (v3). Does not import src/sim.
 import type { Command } from '../../src/core/commands';
 import { type HashState, hashU32 } from '../../src/core/hash';
 import { createRng, type Rng } from '../../src/core/rng';
 import { type CityMapData, NONE_U8 } from '../../src/core/types/map';
-import type { DebugField, DebugFieldKind, SimWorld, WorldOptions } from '../../src/core/types/sim';
+import type {
+  DebugField,
+  DebugFieldKind,
+  SimCounters,
+  SimWorld,
+  WorldOptions,
+} from '../../src/core/types/sim';
 import type { AgentSection } from '../../src/core/types/snapshot';
+import type { ZoneView } from '../../src/core/types/zones';
 
 export function tinyMap(seed: number, size: CityMapData['size'] = 'small'): CityMapData {
   return {
@@ -66,6 +73,16 @@ export class FakeWorld implements SimWorld {
   readonly map: CityMapData;
   zombieCount = 0;
   civilianCount = 0;
+  /** Corpses are never produced by the fake; tests may set a count to exercise the snapshot path. */
+  corpseCount = 0;
+  readonly counters: SimCounters = {
+    sheltered: 0,
+    incubating: 0,
+    civiliansDead: 0,
+    zombiesKilled: 0,
+    outbreakTick: -1,
+  };
+  zonesVersion = 0;
   stepsRun = 0;
   readonly calls: string[] = [];
   readonly applied: Command[] = [];
@@ -121,6 +138,14 @@ export class FakeWorld implements SimWorld {
 
   writeCivilians(out: AgentSection): void {
     this.fill(out, this.civilianCount, 1000, 2);
+  }
+
+  writeCorpses(out: AgentSection): void {
+    this.fill(out, this.corpseCount, 5000, 0);
+  }
+
+  zones(): ZoneView[] {
+    return [];
   }
 
   debugField(_kind: DebugFieldKind): DebugField | null {
