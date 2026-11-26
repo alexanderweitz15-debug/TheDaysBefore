@@ -30,6 +30,8 @@ const stats: SimStats = {
   worldGenMs: 0,
 };
 let sentZonesVersion = -1;
+let zonesSentAt = 0;
+const ZONES_RESEND_TICKS = 20;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -63,8 +65,11 @@ function sendSnapshot(h: SimHost): void {
   w.writeZombies(view.zombies);
   w.writeCivilians(view.civilians);
   w.writeCorpses(view.corpses);
-  if (w.zonesVersion !== sentZonesVersion) {
+  // Occupancy changes every tick; resend on structural change or once per second while zones exist.
+  const occupancyDue = h.tick - zonesSentAt >= ZONES_RESEND_TICKS && w.zones().length > 0;
+  if (w.zonesVersion !== sentZonesVersion || occupancyDue) {
     sentZonesVersion = w.zonesVersion;
+    zonesSentAt = h.tick;
     post({ type: 'zones', zones: w.zones() });
   }
   stats.tick = h.tick;
