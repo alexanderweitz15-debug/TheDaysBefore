@@ -1,48 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import type { Command } from '../../src/core/commands';
-import type { HashState } from '../../src/core/hash';
-import { hashU32 } from '../../src/core/hash';
 import { SimHost } from '../../src/core/sim-host';
-import type { SimWorld } from '../../src/core/types/sim';
+import type { WorldOptions } from '../../src/core/types/sim';
+import { FakeWorld } from './fake-world';
 
-/** Minimal world: counts steps, sums spawn counts, records the call order. */
-class FakeWorld implements SimWorld {
-  readonly widthM = 100;
-  readonly heightM = 100;
-  agentCount = 0;
-  stepsRun = 0;
-  readonly calls: string[] = [];
-  readonly applied: Command[] = [];
+const OPTS: WorldOptions = { size: 'small' };
 
-  applyCommand(cmd: Command): void {
-    this.calls.push(`apply:${cmd.type}@${cmd.tick}`);
-    this.applied.push(cmd);
-    if (cmd.type === 'DebugSpawn') this.agentCount += cmd.payload.count;
-  }
-
-  step(tick: number): void {
-    this.calls.push(`step:${tick}`);
-    this.stepsRun++;
-  }
-
-  hash(h: HashState): void {
-    hashU32(h, this.agentCount);
-    hashU32(h, this.stepsRun);
-  }
-
-  writePositions(out: Float32Array): void {
-    out.fill(0, 0, this.agentCount * 2);
-  }
-}
-
-function makeHost(seed = 1): { host: SimHost; world: FakeWorld; seeds: number[] } {
+function makeHost(
+  seed = 1,
+  options: WorldOptions = OPTS,
+): { host: SimHost; world: FakeWorld; seeds: number[] } {
   const seeds: number[] = [];
+  const opts: WorldOptions[] = [];
   let world!: FakeWorld;
-  const host = new SimHost(seed, (s) => {
+  const host = new SimHost(seed, options, (s, o) => {
     seeds.push(s);
-    world = new FakeWorld();
+    opts.push(o);
+    world = new FakeWorld(s, o);
     return world;
   });
+  expect(opts).toEqual([options]);
   return { host, world, seeds };
 }
 
@@ -51,7 +27,15 @@ describe('SimHost', () => {
     const { seeds, host } = makeHost(4242);
     expect(seeds).toEqual([4242]);
     expect(host.seed).toBe(4242);
+    expect(host.options).toEqual(OPTS);
     expect(host.tick).toBe(0);
+  });
+
+  it('passes the world options to createWorld', () => {
+    const { world, host } = makeHost(1, { size: 'medium' });
+    expect(world.options).toEqual({ size: 'medium' });
+    expect(world.map.size).toBe('medium');
+    expect(host.options.size).toBe('medium');
   });
 
   it('runTick steps the world with the current tick and increments', () => {
@@ -85,14 +69,14 @@ describe('SimHost', () => {
     host.submit({ playerId: 0, type: 'DebugSpawn', payload: { x: 0, y: 0, count: 3 } });
     host.runTick();
     expect(world.calls).toEqual(['apply:DebugSpawn@0', 'step:0']);
-    expect(world.agentCount).toBe(3);
+    expect(world.zombieCount).toBe(3);
   });
 
   it('command submitted after a tick runs in the following tick only', () => {
     const { host, world } = makeHost();
     host.runTick();
     host.submit({ playerId: 0, type: 'DebugSpawn', payload: { x: 0, y: 0, count: 2 } });
-    expect(world.agentCount).toBe(0);
+    expect(world.zombieCount).toBe(0);
     host.runTick();
     expect(world.calls).toEqual(['step:0', 'apply:DebugSpawn@1', 'step:1']);
   });
@@ -112,10 +96,19 @@ describe('SimHost', () => {
     host.enqueue({ tick: 2, playerId: 0, type: 'DebugSpawn', payload: { x: 0, y: 0, count: 5 } });
     host.runTick();
     host.runTick();
-    expect(world.agentCount).toBe(0);
+    expect(world.zombieCount).toBe(0);
     host.runTick();
-    expect(world.agentCount).toBe(5);
+    expect(world.zombieCount).toBe(5);
     expect(world.calls.slice(-2)).toEqual(['apply:DebugSpawn@2', 'step:2']);
+  });
+
+  it('DebugSpawn kind is forwarded; default is zombie', () => {
+    const { host, world } = makeHost();
+    host.submit({ playerId: 0, type: 'DebugSpawn', payload: { x: 0, y: 0, count: 4 } });
+    host.submit({ playerId: 0, type: 'DebugSpawn', payload: { x: 0, y: 0, count: 2, kind: 'civilian' } });
+    host.runTick();
+    expect(world.zombieCount).toBe(4);
+    expect(world.civilianCount).toBe(2);
   });
 
   it('SetGameSpeed sets loop.speed and is also forwarded to the world', () => {
@@ -173,7 +166,8 @@ describe('SimHost', () => {
     let t = 0;
     const host = new SimHost(
       1,
-      () => new FakeWorld(),
+      OPTS,
+      (s, o) => new FakeWorld(s, o),
       (ms) => timings.push(ms),
       () => {
         t += 3;

@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { numberLocale, t } from '../i18n';
 import { settingsOpen } from '../ui-state';
 import {
   LANGUAGES,
@@ -11,18 +11,23 @@ import {
 } from './store';
 
 interface SliderProps {
-  id: 'uiScale' | 'cameraSpeed';
+  id: 'uiScale' | 'cameraSpeed' | 'spriteLimit';
+  unit?: string;
   label: string;
   tip: string;
 }
 
-function Slider({ id, label, tip }: SliderProps) {
+function Slider({ id, label, tip, unit = ' %' }: SliderProps) {
   const lim = SETTING_LIMITS[id];
   const value = settings[id].value;
   return (
     <div class="sz-field" title={tip}>
       <label for={`set-${id}`}>
-        {label} <span class="sz-value sz-mono">{value} %</span>
+        {label}{' '}
+        <span class="sz-value sz-mono">
+          {value.toLocaleString(numberLocale())}
+          {unit}
+        </span>
       </label>
       <input
         id={`set-${id}`}
@@ -39,7 +44,7 @@ function Slider({ id, label, tip }: SliderProps) {
 }
 
 interface CheckProps {
-  id: 'perfOverlay' | 'edgeScroll';
+  id: 'perfOverlay' | 'edgeScroll' | 'buildings3d' | 'devTools';
   label: string;
   tip: string;
 }
@@ -88,6 +93,14 @@ export function SettingsPanel() {
       <Check id="perfOverlay" label={t('settings.perfOverlay')} tip={t('settings.perfOverlay.tip')} />
       <Check id="edgeScroll" label={t('settings.edgeScroll')} tip={t('settings.edgeScroll.tip')} />
       <Slider id="cameraSpeed" label={t('settings.cameraSpeed')} tip={t('settings.cameraSpeed.tip')} />
+      <Check id="buildings3d" label={t('settings.buildings3d')} tip={t('settings.buildings3d.tip')} />
+      <Slider
+        id="spriteLimit"
+        unit=""
+        label={t('settings.spriteLimit')}
+        tip={t('settings.spriteLimit.tip')}
+      />
+      <Check id="devTools" label={t('settings.devTools')} tip={t('settings.devTools.tip')} />
       <button
         type="button"
         class="sz-btn sz-btn--compact"

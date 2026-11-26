@@ -2,100 +2,176 @@ import { describe, expect, it } from 'vitest';
 import type { Command } from '../core/commands';
 import { createHash, hashHex } from '../core/hash';
 import { runHeadless } from '../core/headless';
-import { DUMMY_SIM } from '../data/dev/dummy-sim';
-import { createDummyWorld, createWorld } from './world';
+import { CELL_SIZE_M, TERRAIN } from '../core/types/map';
+import type { AgentSection } from '../core/types/snapshot';
+import { AGENT_CAPACITY, ZOMBIE_MOVEMENT } from '../data/agents/horde';
+import { CITY_SIZES } from '../data/city/generator';
+import { DIR_NONE } from './horde/flow-field';
+import { isWalkable } from './map/grid';
+import { CityWorld, createWorld } from './world';
 
-const SEED = 12345;
-const spawn = (tick: number, x: number, y: number, count: number): Command => ({
+const SEED = 31337;
+const SMALL = { size: 'small' } as const;
+const spawn = (tick: number, x: number, y: number, count: number, kind?: 'zombie' | 'civilian'): Command => ({
   tick,
   playerId: 0,
   type: 'DebugSpawn',
-  payload: { x, y, count },
+  payload: kind ? { x, y, count, kind } : { x, y, count },
 });
-const worldHash = (w: { hash: (h: ReturnType<typeof createHash>) => void }): string => {
+const worldHash = (w: CityWorld): string => {
   const h = createHash();
   w.hash(h);
   return hashHex(h);
 };
+const section = (count: number): AgentSection => ({
+  count,
+  ids: new Uint32Array(count),
+  pos: new Float32Array(2 * count),
+  kind: new Uint8Array(count),
+});
 
-describe('dummy world', () => {
-  it('starts with initialAgents inside the world', () => {
-    const w = createWorld(SEED);
-    expect(w.widthM).toBe(DUMMY_SIM.widthM);
-    expect(w.heightM).toBe(DUMMY_SIM.heightM);
-    expect(w.agentCount).toBe(DUMMY_SIM.initialAgents);
+/** Every live zombie sits on a walkable cell matching its position, and no cell exceeds the cap. */
+function checkInvariants(w: CityWorld): void {
+  const n = w.map.widthCells;
+  const z = w.zombies;
+  const perCell = new Map<number, number>();
+  for (let i = 0; i < z.highWater; i++) {
+    if (!z.alive[i]) continue;
+    const c =
+      Math.floor((z.posY[i] as number) / CELL_SIZE_M) * n + Math.floor((z.posX[i] as number) / CELL_SIZE_M);
+    expect(z.cell[i]).toBe(c);
+    expect(isWalkable(w.map.terrain[c] as number)).toBe(true);
+    perCell.set(c, (perCell.get(c) ?? 0) + 1);
+  }
+  for (const v of perCell.values()) expect(v).toBeLessThanOrEqual(ZOMBIE_MOVEMENT.maxPerCell);
+}
+
+describe('city world', () => {
+  it('generates the map of the requested size and places the population', () => {
+    const w = new CityWorld(SEED, SMALL);
+    expect(w.widthM).toBe(CITY_SIZES.small.sizeM);
+    expect(w.heightM).toBe(CITY_SIZES.small.sizeM);
+    expect(w.civilianCount).toBe(CITY_SIZES.small.population);
+    expect(w.zombieCount).toBe(0);
+    expect(w.flow.busy).toBe(false);
   });
 
-  it('same seed and commands give the same hash after 6000 ticks, another seed differs', () => {
-    const cmds = [spawn(10, 500, 500, 300), spawn(3000, 1990, 5, 200)];
-    const a = runHeadless(createWorld, SEED, 6000, cmds);
-    const b = runHeadless(createWorld, SEED, 6000, cmds);
-    const c = runHeadless(createWorld, SEED + 1, 6000, cmds);
+  it('same seed and commands give the same hash, another seed differs', () => {
+    const cmds = [spawn(0, 200, 200, 800), spawn(50, 700, 600, 600), spawn(60, 500, 500, 50, 'civilian')];
+    const a = runHeadless(createWorld, SEED, SMALL, 1200, cmds);
+    const b = runHeadless(createWorld, SEED, SMALL, 1200, cmds);
+    const c = runHeadless(createWorld, SEED + 1, SMALL, 1200, cmds);
     expect(a.hash).toBe(b.hash);
     expect(a.hash).not.toBe(c.hash);
   });
 
-  it('hash changes when the state advances', () => {
-    const w = createWorld(SEED);
+  it('DebugSpawn uses walkable cells only and spreads outwards from full cells', () => {
+    const w = new CityWorld(SEED, SMALL);
+    // Aim at the middle of a building.
+    const b = w.map.buildings;
+    const x = ((b.x[0] as number) + (b.w[0] as number) / 2) * CELL_SIZE_M;
+    const y = ((b.y[0] as number) + (b.h[0] as number) / 2) * CELL_SIZE_M;
+    expect(w.map.terrain[Math.floor(y / 4) * w.map.widthCells + Math.floor(x / 4)]).toBe(TERRAIN.building);
+    w.applyCommand(spawn(0, x, y, 1500));
+    expect(w.zombieCount).toBe(1500);
+    checkInvariants(w);
+  });
+
+  it('DebugSpawn is capped at capacity and ignores invalid input and SetGameSpeed', () => {
+    const w = new CityWorld(SEED, SMALL);
     const h0 = worldHash(w);
-    w.step(0);
-    expect(worldHash(w)).not.toBe(h0);
-  });
-
-  it('agents stay inside the bounds', () => {
-    const w = createDummyWorld(SEED, { ...DUMMY_SIM, widthM: 60, heightM: 40, initialAgents: 1000 });
-    w.applyCommand(spawn(0, 0, 0, 500));
-    for (let t = 0; t < 2000; t++) w.step(t);
-    const out = new Float32Array(2 * w.agentCount);
-    w.writePositions(out);
-    for (let i = 0; i < w.agentCount; i++) {
-      expect(out[2 * i]).toBeGreaterThanOrEqual(0);
-      expect(out[2 * i]).toBeLessThanOrEqual(60);
-      expect(out[2 * i + 1]).toBeGreaterThanOrEqual(0);
-      expect(out[2 * i + 1]).toBeLessThanOrEqual(40);
-    }
-  });
-
-  it('DebugSpawn adds agents within the spawn radius', () => {
-    const w = createWorld(SEED);
-    const before = w.agentCount;
-    w.applyCommand(spawn(0, 1000, 1000, 250));
-    expect(w.agentCount).toBe(before + 250);
-    const out = new Float32Array(2 * w.agentCount);
-    w.writePositions(out);
-    for (let i = before; i < w.agentCount; i++) {
-      const d = Math.hypot((out[2 * i] as number) - 1000, (out[2 * i + 1] as number) - 1000);
-      expect(d).toBeLessThanOrEqual(DUMMY_SIM.spawnRadiusM + 1e-3);
-    }
-  });
-
-  it('DebugSpawn is capped at capacity and ignores invalid counts', () => {
-    const w = createWorld(SEED);
-    w.applyCommand(spawn(0, 10, 10, DUMMY_SIM.capacity * 2));
-    expect(w.agentCount).toBe(DUMMY_SIM.capacity);
-    w.applyCommand(spawn(0, 10, 10, 5));
-    expect(w.agentCount).toBe(DUMMY_SIM.capacity);
-    const s = createWorld(SEED);
-    s.applyCommand(spawn(0, 10, 10, -3));
-    s.applyCommand(spawn(0, Number.NaN, 10, 3));
-    expect(s.agentCount).toBe(DUMMY_SIM.initialAgents);
-  });
-
-  it('ignores SetGameSpeed', () => {
-    const w = createWorld(SEED);
-    const h0 = worldHash(w);
-    w.applyCommand({ tick: 0, playerId: 0, type: 'SetGameSpeed', payload: { speed: 4 } });
+    w.applyCommand(spawn(0, 10, 10, -5));
+    w.applyCommand(spawn(0, Number.NaN, 10, 5));
+    w.applyCommand({ tick: 0, playerId: 0, type: 'SetGameSpeed', payload: { speed: 2 } });
     expect(worldHash(w)).toBe(h0);
+    w.applyCommand(spawn(0, 500, 500, AGENT_CAPACITY.zombies + 5000));
+    expect(w.zombieCount).toBe(AGENT_CAPACITY.zombies);
+    w.applyCommand(spawn(0, 500, 500, AGENT_CAPACITY.civilians, 'civilian'));
+    expect(w.civilianCount).toBe(AGENT_CAPACITY.civilians);
   });
 
-  it('keeps its preallocated buffers across ticks and spawns', () => {
-    const w = createDummyWorld(SEED, DUMMY_SIM);
-    const buffers = [w.agents.posX, w.agents.posY, w.agents.velX, w.agents.velY].map((a) => a.buffer);
-    for (let t = 0; t < 100; t++) {
-      if (t % 10 === 0) w.applyCommand(spawn(t, 100, 100, 100));
-      w.step(t);
+  it('zombies never enter buildings or water and respect the density cap while moving', () => {
+    const w = new CityWorld(SEED, SMALL);
+    w.applyCommand(spawn(0, 500, 500, 4000));
+    w.applyCommand(spawn(0, 100, 900, 2000));
+    for (let t = 0; t < 400; t++) w.step(t);
+    checkInvariants(w);
+  });
+
+  it('a zombie targets the nearest civilian within sight range (rule 1)', () => {
+    const w = new CityWorld(SEED, SMALL);
+    const z = w.zombies;
+    const c = w.civilians;
+    let checked = 0;
+    for (const [x, y] of [
+      [500, 500],
+      [300, 650],
+      [700, 300],
+    ] as const) {
+      w.applyCommand(spawn(0, x, y, 1));
+      const i = z.highWater - 1;
+      let best = -1;
+      let bestD = ZOMBIE_MOVEMENT.sightRangeM * ZOMBIE_MOVEMENT.sightRangeM;
+      for (let j = 0; j < c.highWater; j++) {
+        const dx = (c.posX[j] as number) - (z.posX[i] as number);
+        const dy = (c.posY[j] as number) - (z.posY[i] as number);
+        if (dx * dx + dy * dy < bestD) {
+          bestD = dx * dx + dy * dy;
+          best = j;
+        }
+      }
+      // Slot i scans on ticks where (i + tick) % interval === 0.
+      w.step(10 - (i % 10));
+      expect(z.target[i]).toBe(best);
+      if (best >= 0) checked++;
     }
-    const after = [w.agents.posX, w.agents.posY, w.agents.velX, w.agents.velY].map((a) => a.buffer);
-    for (let i = 0; i < after.length; i++) expect(after[i]).toBe(buffers[i]);
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('without civilians the flow field leads to the city center', () => {
+    const w = new CityWorld(SEED, SMALL);
+    for (let i = 0; i < w.civilians.highWater; i++) w.civilians.release(i);
+    let t = 0;
+    w.step(t++);
+    while (w.flow.busy) w.step(t++);
+    expect(w.flow.dist[w.centerCell]).toBe(0);
+    expect(w.flow.dirs[w.centerCell]).toBe(DIR_NONE);
+    // Some walkable cell far away has a direction.
+    const n = w.map.widthCells;
+    let pointed = 0;
+    for (let i = 0; i < n * n; i += 97) if (w.flow.dirs[i] !== DIR_NONE) pointed++;
+    expect(pointed).toBeGreaterThan(100);
+  });
+
+  it('flow field leads walkers towards civilians over time', () => {
+    const w = new CityWorld(SEED, SMALL);
+    // Far corner of the map, usually forest: start from a walkable spot near it.
+    w.applyCommand(spawn(0, 30, 30, 200));
+    const meanDist = (): number => {
+      let s = 0;
+      for (let i = 0; i < w.zombies.highWater; i++) s += w.flow.dist[w.zombies.cell[i] as number] as number;
+      return s / w.zombies.count;
+    };
+    const before = meanDist();
+    for (let t = 0; t < 600; t++) w.step(t);
+    expect(meanDist()).toBeLessThan(before * 0.8);
+  });
+
+  it('writes snapshot sections with stable slot ids and debug fields', () => {
+    const w = new CityWorld(SEED, SMALL);
+    w.applyCommand(spawn(0, 500, 500, 300));
+    w.step(0);
+    const zs = section(w.zombieCount);
+    w.writeZombies(zs);
+    expect(Array.from(zs.ids.subarray(0, 3))).toEqual([0, 1, 2]);
+    expect(zs.pos[2]).toBe(w.zombies.posX[1]);
+    const cs = section(w.civilianCount);
+    w.writeCivilians(cs);
+    expect(cs.ids[cs.count - 1]).toBe(w.civilians.highWater - 1);
+    const n = w.map.widthCells;
+    const flow = w.debugField('flow');
+    expect(flow?.data.length).toBe(n * n);
+    const density = w.debugField('density');
+    expect(density?.data.reduce((a, b) => a + b, 0)).toBe(300);
   });
 });

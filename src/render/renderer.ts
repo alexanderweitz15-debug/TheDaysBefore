@@ -1,11 +1,13 @@
-// Pixi renderer: world container with grid and agents, camera, FPS measurement. Reads the sim only.
+// Pixi renderer: baked city map, agents, debug overlays, camera, FPS measurement. Reads the sim only.
 import { Application, Container } from 'pixi.js';
 import type { CreateRenderer } from '../core/types/app';
 import { Camera } from './camera';
 import { FpsMeter } from './fps';
 import { AgentsLayer } from './layers/agents';
-import { GridLayer } from './layers/grid';
+import { MapLayer } from './layers/map-layer';
+import { OverlayLayer } from './layers/overlay';
 import { palette } from './palette';
+import { overlayMode } from './view-state';
 
 export const createRenderer: CreateRenderer = async (host, sim) => {
   const app = new Application();
@@ -19,20 +21,32 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   host.appendChild(app.canvas);
 
   const world = new Container();
-  const grid = new GridLayer();
+  const mapLayer = new MapLayer(app.renderer);
   const agents = new AgentsLayer(app.renderer);
-  world.addChild(grid.view, agents.view);
+  const overlay = new OverlayLayer();
+  world.addChild(
+    mapLayer.view,
+    agents.civilians.view,
+    agents.zombies.view,
+    agents.density.view,
+    overlay.view,
+  );
   app.stage.addChild(world);
 
   const camera = new Camera(host, app.canvas, world);
   const meter = new FpsMeter();
 
-  const applyWorldSize = (s: { widthM: number; heightM: number }): void => {
-    grid.setWorldSize(s.widthM, s.heightM);
+  const onSnapshot = (s: NonNullable<typeof sim.curr>): void => {
+    overlay.setWorldSize(s.widthM, s.heightM);
     camera.setWorldSize(s.widthM, s.heightM);
+    agents.ingest(s);
   };
-  if (sim.curr) applyWorldSize(sim.curr);
-  const unsub = sim.onSnapshot(applyWorldSize);
+  if (sim.curr) onSnapshot(sim.curr);
+  const unsub = sim.onSnapshot(onSnapshot);
+  const unsubMap = sim.onMap((m) => {
+    mapLayer.setMap(m);
+    overlay.setMap(m);
+  });
 
   app.renderer.on('resize', () => camera.apply());
 
@@ -40,14 +54,16 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     const now = performance.now();
     meter.tick(now);
     camera.update(ticker.deltaMS);
-    grid.setZoom(camera.zoom);
-    agents.update(sim.prev, sim.curr, sim.alpha(now), camera.zoom);
+    mapLayer.update();
+    agents.update(sim.curr, sim.alpha(now), camera.zoom);
+    overlay.update(overlayMode.peek(), sim.debugField, camera.zoom);
   });
 
   return {
     fps: () => meter.fps(),
     destroy: () => {
       unsub();
+      unsubMap();
       camera.destroy();
       app.destroy(true, { children: true });
     },

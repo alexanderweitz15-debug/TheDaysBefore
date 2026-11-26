@@ -1,87 +1,121 @@
-// Dummy agents as one pooled ParticleContainer; positions are interpolated between two snapshots.
-import { Graphics, Particle, ParticleContainer, type Renderer, type Texture } from 'pixi.js';
+// Zombies and civilians. Zombies switch to a density texture above the sprite limit (visible zombies) or at strategic zoom.
+// Shapes differ for color-blind safety: civilians are round dots, zombies diamonds.
+import { Graphics, type Renderer, type Texture } from 'pixi.js';
 import type { SnapshotView } from '../../core/types/snapshot';
+import {
+  AGENT_TEX_SIZE,
+  CIVILIAN_CAPACITY,
+  CIVILIAN_RADIUS_M,
+  DENSITY_ALPHA_MAX,
+  DENSITY_ALPHA_MIN,
+  DENSITY_CELL_M,
+  DENSITY_FULL_COUNT,
+  SPRITE_LIMIT_HYSTERESIS,
+  ZOMBIE_CAPACITY,
+  ZOMBIE_RADIUS_M,
+  ZOOM_STRATEGIC,
+  ZOOM_STRATEGIC_HYSTERESIS,
+} from '../../data/render';
+import { settings } from '../../ui/settings/store';
 import { palette } from '../palette';
+import { cameraView } from '../view-state';
+import { AgentSet } from './agent-set';
+import { DensitySprite } from './density';
 
-const TEX_SIZE = 16;
-const MIN_RADIUS_PX = 1.5;
-const MAX_RADIUS_PX = 4;
-const RADIUS_M = 0.6;
+const TEX_SIZE = AGENT_TEX_SIZE;
 
 export class AgentsLayer {
-  readonly view: ParticleContainer;
-  private readonly texture: Texture;
-  private readonly pool: Particle[] = [];
-  private lastZoom = Number.NaN;
+  readonly civilians: AgentSet;
+  readonly zombies: AgentSet;
+  readonly density: DensitySprite;
+  private densityMode = false;
+  private grid = new Uint16Array(0);
+  private gw = 0;
+  private gh = 0;
 
   constructor(renderer: Renderer) {
-    const g = new Graphics().circle(TEX_SIZE / 2, TEX_SIZE / 2, TEX_SIZE / 2).fill(0xffffff);
-    this.texture = renderer.generateTexture({ target: g, resolution: 2 });
-    g.destroy();
-    this.view = new ParticleContainer({ texture: this.texture, dynamicProperties: { position: true } });
+    const h = TEX_SIZE / 2;
+    const base = palette.spriteBase;
+    const dot = new Graphics().circle(h, h, h).fill(base);
+    const dotTex: Texture = renderer.generateTexture({ target: dot, resolution: 2 });
+    dot.destroy();
+    const diamond = new Graphics().poly([h, 0, TEX_SIZE, h, h, TEX_SIZE, 0, h]).fill(base);
+    const diamondTex: Texture = renderer.generateTexture({ target: diamond, resolution: 2 });
+    diamond.destroy();
+    const v = palette.infection.viral.color;
+    this.civilians = new AgentSet(
+      dotTex,
+      TEX_SIZE,
+      palette.civilian.color,
+      CIVILIAN_RADIUS_M,
+      CIVILIAN_CAPACITY,
+    );
+    this.zombies = new AgentSet(diamondTex, TEX_SIZE, v, ZOMBIE_RADIUS_M, ZOMBIE_CAPACITY);
+    this.density = new DensitySprite((v >> 16) & 255, (v >> 8) & 255, v & 255);
   }
 
-  /** Scale so a dot stays visible when zoomed out and does not balloon when zoomed in. */
-  private applyZoom(zoom: number): void {
-    if (zoom === this.lastZoom) return;
-    this.lastZoom = zoom;
-    const radiusPx = Math.min(MAX_RADIUS_PX, Math.max(MIN_RADIUS_PX, RADIUS_M * zoom));
-    const s = (radiusPx * 2) / zoom / TEX_SIZE;
-    for (const p of this.pool) {
-      p.scaleX = s;
-      p.scaleY = s;
-    }
-    this.view.update();
+  ingest(s: SnapshotView): void {
+    this.zombies.ingest(s.zombies);
+    this.civilians.ingest(s.civilians);
+    if (this.densityMode) this.aggregate(s.widthM, s.heightM);
   }
 
-  private resize(count: number, zoom: number): void {
-    const children = this.view.particleChildren;
-    if (count < children.length) {
-      this.view.removeParticles(count, children.length);
-      return;
+  private aggregate(widthM: number, heightM: number): void {
+    const gw = Math.ceil(widthM / DENSITY_CELL_M);
+    const gh = Math.ceil(heightM / DENSITY_CELL_M);
+    if (gw !== this.gw || gh !== this.gh) {
+      this.gw = gw;
+      this.gh = gh;
+      this.grid = new Uint16Array(gw * gh);
+    } else {
+      this.grid.fill(0);
     }
-    const radiusPx = Math.min(MAX_RADIUS_PX, Math.max(MIN_RADIUS_PX, RADIUS_M * zoom));
-    const s = (radiusPx * 2) / zoom / TEX_SIZE;
-    for (let i = children.length; i < count; i++) {
-      let p = this.pool[i];
-      if (!p) {
-        p = new Particle({
-          texture: this.texture,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          scaleX: s,
-          scaleY: s,
-          tint: palette.debugAgent,
-        });
-        this.pool[i] = p;
-      }
-      p.scaleX = s;
-      p.scaleY = s;
-      this.view.addParticle(p);
-    }
+    const grid = this.grid;
+    this.zombies.forEachPosition((x, y) => {
+      const cx = Math.min(gw - 1, Math.max(0, (x / DENSITY_CELL_M) | 0));
+      const cy = Math.min(gh - 1, Math.max(0, (y / DENSITY_CELL_M) | 0));
+      const i = cy * gw + cx;
+      if (grid[i] !== 0xffff) grid[i] = (grid[i] as number) + 1;
+    });
+    this.density.ensure(gw, gh, DENSITY_CELL_M);
+    this.density.fill((i) =>
+      Math.min(
+        1,
+        ((grid[i] as number) / DENSITY_FULL_COUNT) * DENSITY_ALPHA_MAX +
+          ((grid[i] as number) > 0 ? DENSITY_ALPHA_MIN : 0),
+      ),
+    );
   }
 
-  update(prev: SnapshotView | null, curr: SnapshotView | null, alpha: number, zoom: number): void {
-    if (!curr) return;
-    const n = curr.agentCount;
-    if (this.view.particleChildren.length !== n) this.resize(n, zoom);
-    this.applyZoom(zoom);
-    const out = this.view.particleChildren;
-    const c = curr.positions;
-    const p = prev && prev.agentCount > 0 ? prev.positions : null;
-    const common = p && prev ? Math.min(prev.agentCount, n) : 0;
-    const a = Math.min(1, Math.max(0, alpha));
-    for (let i = 0; i < common; i++) {
-      const o = out[i] as Particle;
-      const px = (p as Float32Array)[i * 2] as number;
-      const py = (p as Float32Array)[i * 2 + 1] as number;
-      o.x = px + ((c[i * 2] as number) - px) * a;
-      o.y = py + ((c[i * 2 + 1] as number) - py) * a;
+  /** Decides sprite or density mode; returns true when the mode changed. */
+  private chooseMode(zoom: number): boolean {
+    const limit = settings.spriteLimit.peek();
+    const hw = cameraView.width / 2 / zoom;
+    const hh = cameraView.height / 2 / zoom;
+    const count = this.zombies.countInRect(
+      cameraView.cx - hw,
+      cameraView.cy - hh,
+      cameraView.cx + hw,
+      cameraView.cy + hh,
+    );
+    const strategic = this.densityMode
+      ? zoom < ZOOM_STRATEGIC * ZOOM_STRATEGIC_HYSTERESIS
+      : zoom < ZOOM_STRATEGIC;
+    const tooMany = this.densityMode ? count > limit * SPRITE_LIMIT_HYSTERESIS : count > limit;
+    const next = strategic || tooMany;
+    const changed = next !== this.densityMode;
+    this.densityMode = next;
+    return changed;
+  }
+
+  update(sim: SnapshotView | null, alpha: number, zoom: number): void {
+    if (!sim) return;
+    if (this.chooseMode(zoom)) {
+      if (this.densityMode) this.aggregate(sim.widthM, sim.heightM);
     }
-    for (let i = common; i < n; i++) {
-      const o = out[i] as Particle;
-      o.x = c[i * 2] as number;
-      o.y = c[i * 2 + 1] as number;
-    }
+    this.zombies.setVisible(!this.densityMode);
+    this.density.view.visible = this.densityMode;
+    if (!this.densityMode) this.zombies.update(alpha, zoom);
+    this.civilians.update(alpha, zoom);
   }
 }

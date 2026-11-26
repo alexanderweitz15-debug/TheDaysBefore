@@ -184,3 +184,78 @@ export const VALIDATION = {
   /** Max generation attempts with derived seeds before failing loudly. */
   maxAttempts: 8,
 } as const;
+
+/** Structural constants of the generator algorithm (shape, not balance). */
+export const LAYOUT = {
+  /** District seeds per square kilometer. */
+  districtSeedsPerKm2: 6,
+  /** Ring boundaries as a fraction of the half map size (districts and sectors). */
+  innerRingFrac: 0.25,
+  middleRingFrac: 0.6,
+  /** Spacing of grid-layout avenues. */
+  avenueSpacingM: 400,
+  radialSpokesMin: 5,
+  radialSpokesMax: 8,
+  /** Ring road radius as a fraction of the half map size. */
+  ringRoadFrac: 0.45,
+  ringRoadVertices: 24,
+  /** River center band as a fraction of the map edge. */
+  riverMarginFrac: 0.25,
+  /** Coast depth range as a fraction of the map edge. */
+  coastDepthMinFrac: 0.07,
+  coastDepthMaxFrac: 0.14,
+  hillRadiusMinM: 150,
+  hillRadiusMaxM: 400,
+  hillHeightMin: 60,
+  hillHeightMax: 180,
+  baseElevation: 20,
+  /** Longest water crossing that may become a bridge. */
+  maxBridgeLengthM: 140,
+  /** Split jitter of the block subdivision (organic old town vs regular grid). */
+  splitJitter: 0.15,
+  organicSplitJitter: 0.35,
+  /** Blocks stop splitting below this multiple of the district block size. */
+  leafFactor: 1.3,
+  parkChance: 0.07,
+  /** Sewer: one manhole per square of this many cells. */
+  sewerSpacingCells: 32,
+  /** Unreachable walkable pockets up to this size touching water become shore water. */
+  maxShorePocketCells: 400,
+  /** Lower bound of district seeds on small maps. */
+  minDistrictSeeds: 6,
+  /** Preferred distance of the hospital / station district seed from the center, fraction of the map edge. */
+  hospitalDistanceFrac: 0.18,
+  stationDistanceFrac: 0.22,
+  /** Harbor seed: distance to the coast plus this weight times distance to the center. */
+  harborCenterWeight: 0.3,
+  /** An airport district needs at least this many district seeds. */
+  airportMinDistrictSeeds: 16,
+  /** From this many sectors on, the inner ring gets two sectors instead of one. */
+  twoInnerSectorsFrom: 12,
+  /** Share of the remaining sectors in the middle ring. */
+  middleSectorShare: 0.4,
+  /** Coast and river outlines: random walk damping and drift per cell. */
+  wobbleDamping: 0.96,
+  coastDrift: 0.4,
+  riverDrift: 0.25,
+  /** Coast outline range as a multiple of its depth. */
+  coastWobbleMinFrac: 0.6,
+  coastWobbleMaxFrac: 1.4,
+  /** Two parallel rivers: first band ends and second band starts at these fractions of the map edge. */
+  parallelRiverSplitLoFrac: 0.45,
+  parallelRiverSplitHiFrac: 0.55,
+  /** Single river band inset beyond riverMarginFrac. */
+  singleRiverInsetFrac: 0.05,
+  /** Position jitter of grid avenues and radial spokes, fraction of their spacing. */
+  avenueJitterFrac: 0.3,
+  spokeJitterFrac: 0.3,
+  /** Ring road vertex radius range: (min .. min + span) x ringRoadFrac radius. */
+  ringRoadRadiusMinFrac: 0.9,
+  ringRoadRadiusSpanFrac: 0.2,
+  /** Waterworks site score penalty (meters) outside industrial districts. */
+  waterworksOutsideIndustryPenalty: 50,
+  /** Preferred school distance from the town center, fraction of the map edge. */
+  schoolDistanceFrac: 0.2,
+  /** Smallest building edge in cells. */
+  minBuildingCells: 3,
+} as const;
