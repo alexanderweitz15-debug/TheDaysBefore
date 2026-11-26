@@ -30,3 +30,4 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 15:49 | M0 | hauptagent | COMMIT | Bericht M0 | docs/ | 14bae3f
 2026-11-26 15:49 | M0 | hauptagent | STOPP | M0 abgeschlossen. Nächster Schritt: M1 Stadt und Horde, Plan docs/plans/M1.md anlegen | - | -
 2026-11-26 15:52 | M0 | hauptagent | COMMIT | Alle M0-Commits nach GitHub TheDaysBefore gepusht, Branch main | - | 30f960e
+2026-11-26 15:57 | M0 | hauptagent | FIX | Pages zeigte kein Bild, weil Quellcode statt Build ausgeliefert wurde. Workflow baut und deployt dist/ | .github/workflows/pages.yml | Build unter Unterpfad lokal geprüft
