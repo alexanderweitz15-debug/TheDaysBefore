@@ -18,3 +18,12 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 15:45 | M0 | gameplay-ui | FERTIG | Pakete B1 Renderer und B2 UI | src/render/ src/ui/ src/data/menu.ts src/data/i18n/ | Biome und tsc sauber, im Browser ungetestet
 2026-11-26 15:46 | M0 | sim-engine | FERTIG | Paket A1 Dummy-Welt, Wander-System, Trig-Tabelle ohne Math.sin | src/sim/ | 16 Tests grün, 30.000 Agenten 1,1 ms pro Tick
 2026-11-26 15:46 | M0 | hauptagent | ABNAHME | Sichtprüfung im Browser (Playwright): Hauptmenü, Testraster, Agenten, Zoom, 20 Ticks pro Sekunde | - | bestanden, FPS im Container nur Software-Rendering
+2026-11-26 15:46 | M0 | hauptagent | COMMIT | Dummy-Welt, Renderer, UI | src/sim/ src/render/ src/ui/ src/data/ | 57a711a
+2026-11-26 15:46 | M0 | qa-review | FERTIG | Paket C2 Determinismus-Test 6000 Ticks und Benchmark mit Referenz | tests/determinism.test.ts bench/ | 102 Tests grün, Bench 30.000 Agenten 0,93 ms Schnitt, Streuung 1,8 %
+2026-11-26 15:46 | M0 | hauptagent | COMMIT | Determinismus-Test und Benchmark | tests/ bench/ | f76adc8
+2026-11-26 15:46 | M0 | qa-review | AUFTRAG | Paket C3 Review A1 Dummy-Welt, B1 Renderer, B2 UI gegen Regeln | src/sim/ src/render/ src/ui/ src/data/ | -
+2026-11-26 15:46 | M0 | gameplay-ui | AUFTRAG | Paket B3 lokale Schriften Inter und JetBrains Mono | src/ui/ | -
+2026-11-26 15:46 | M0 | gameplay-ui | FERTIG | Paket B3 Inter und JetBrains Mono lokal, latin-Subset | src/ui/app.tsx src/ui/styles.css | Build sauber, 94 kB woff2, keine externen Requests
+2026-11-26 15:46 | M0 | hauptagent | COMMIT | Lokale Schriften | src/ui/ | 900ee26
+2026-11-26 15:49 | M0 | qa-review | REVIEW | A1, B1, B2 geprüft | docs/progress/M0.md | bestanden, keine Blocker, 6 niedrige Punkte
+2026-11-26 15:49 | M0 | hauptagent | ABNAHME | Alle sechs Kriterien von M0 geprüft | docs/progress/M0.md | bestanden
