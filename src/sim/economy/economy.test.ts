@@ -244,4 +244,40 @@ describe('economy: income and purchases', () => {
     expect(s.units.ammo[u]).toBeGreaterThan(0);
     expect((s.units.ammo[u] as number) + (e.amount[R.ammo] as number)).toBeCloseTo(50, 3);
   });
+
+  it('perMin is running income minus running use; purchases, building and repurposing do not count', () => {
+    const w = missionWorld({ startResources: { budget: 100_000, material: 5000, food: 1500, ammo: 500 } });
+    const s = w.s;
+    const e = s.eco;
+    passes(w, 10);
+    const r0 = view(w).resources;
+    expect(r0.budget.perMin).toBeGreaterThan(0);
+    expect(r0.food.perMin).toBeLessThan(0);
+    expect(r0.ammo.perMin).toBe(0);
+    const n = s.n;
+    let c = s.cellOf(e.hqX, e.hqY);
+    while (!s.walkable[c]) c++;
+    const x = ((c % n) + 0.5) * s.cellM;
+    const y = (Math.floor(c / n) + 0.5) * s.cellM;
+    for (let k = 0; k < 10; k++)
+      send(w, { playerId: 0, type: 'PlaceUnit', payload: { unitType: 'infantry', x, y } });
+    repurpose(w, buildingIn(w, 'harbor'), 'scrapyard');
+    send(w, {
+      playerId: 0,
+      type: 'PlaceStructure',
+      payload: { kind: 'wall', points: [x, y + 20, x + 40, y + 20], rotation: 0 },
+    });
+    const spent = 100_000 - w.counters.budget;
+    expect(spent).toBeGreaterThan(3000);
+    passes(w, 1);
+    const r1 = view(w).resources;
+    expect(r1.budget.perMin).toBeCloseTo(r0.budget.perMin, -1);
+    expect(r1.material.perMin).toBeGreaterThanOrEqual(0);
+    // Refilling at the HQ is running use and shows up.
+    let u = 0;
+    while (!s.units.pool.alive[u]) u++;
+    s.units.ammo[u] = 0;
+    passes(w, 2);
+    expect(view(w).resources.ammo.perMin).toBeLessThan(0);
+  });
 });

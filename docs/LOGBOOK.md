@@ -192,3 +192,9 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 13:26 | M5 | sim-engine | FIX | Linien-Bauwerke über Gebäude: nur freie Teilstücke gebaut und bezahlt | src/sim/structures/structures.ts | fast 320 grün, freie Linien bitgleich
 2026-11-27 13:36 | M5 | gameplay-ui | FIX | Tutorial-Texte/Marker, Pause-Banner, Auftragsdialog halbe Reserve, Auftragsliste nicht verdeckt, Linien mit Teilstücken und Rückmeldung, Budget-Trend vorerst aus | src/ui/ src/data/ src/render/layers/build-preview.ts | Biome/tsc grün
 2026-11-27 13:36 | M5 | hauptagent | FIX | Worker sendet nach SetGameSpeed und in der Pause sofort einen Snapshot (UI sah die Pause nicht) | src/core/worker.ts | -
+2026-11-27 13:37 | M5 | hauptagent | COMMIT | Abnahme-Fixes auf main | - | d41e186
+2026-11-27 13:37 | M5 | sim-engine | AUFTRAG | Budget-Trend ohne Einmalkäufe | src/sim/economy/ | -
+2026-11-27 13:37 | M5 | qa-review | AUFTRAG | Regressionstests Pause/Aufgeben, Durchlauf 2 (Tutorial, Mission, Auswertung), Abnahmetabelle | tests/ docs/progress/M5.md | -
+2026-11-27 13:40 | M5 | sim-engine | FIX | perMin ohne Einmalkäufe (Fluss-Zähler), Test | src/sim/economy/ | fast 326 grün, Freimodus bitgleich
+2026-11-27 13:40 | M5 | hauptagent | FIX | Integrationsschritt laut UI-Übergabe: SHOW_BUDGET_TREND wieder true | src/data/hud-economy.ts | -
+2026-11-27 14:08 | M5 | hauptagent | STOPP | Session beendet auf Wunsch des Menschen. M5 inhaltlich fertig, Abnahme-Durchlauf 2 offen. Nächster Schritt: Durchlauf 2 wiederholen, dann M5 abnehmen, dann M6 | docs/progress/M5.md | 366 Tests grün

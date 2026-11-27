@@ -52,7 +52,9 @@ export class Economy {
   /** Stock per resource; budget lives in counters.budget, amount[budget] keeps its fraction. */
   readonly amount = new Float64Array(NR);
   readonly capacity = new Float64Array(NR);
-  /** Ring of stock samples, one per pass (trend). */
+  /** Cumulative running flow per resource: income and production minus consumption (inputs, food, resupply). */
+  readonly flow = new Float64Array(NR);
+  /** Ring of flow samples, one per pass (trend without purchases; power: balance). */
   readonly history = new Float64Array(TREND * NR);
   passes = 0;
   readonly alive = new Uint8Array(MAX);
@@ -170,6 +172,7 @@ export class Economy {
     if (!this.active) return n;
     const a = Math.min(n, this.amount[R.ammo] as number);
     this.amount[R.ammo] = (this.amount[R.ammo] as number) - a;
+    this.flow[R.ammo] = (this.flow[R.ammo] as number) - a;
     return a;
   }
 
@@ -200,6 +203,7 @@ export class Economy {
       this.amount,
       this.capacity,
       this.history,
+      this.flow,
       this.alive.subarray(0, hw),
       this.id.subarray(0, hw),
       this.kind.subarray(0, hw),
