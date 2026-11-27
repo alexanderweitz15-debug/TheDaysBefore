@@ -16,6 +16,8 @@ export function startOutbreak(s: SimState, x: number, y: number): boolean {
   o.pzSlot = slot;
   s.counters.outbreakTick = s.tick;
   s.markInfection(s.zombies.cell[slot] as number, INFECTION_FIELD.turn);
+  s.stats.moment('outbreak', s.tick, x, y);
+  s.stats.squadsAtOutbreak = s.units.count;
   return true;
 }
 
@@ -33,7 +35,10 @@ export function advanceInfection(s: SimState): void {
     s.markInfection(c.cell[j] as number, INFECTION_FIELD.turn);
     removeCivilian(s, j);
     // Turning inside a shelter breaks the zone open (GDD 7).
-    if (z >= 0) s.zones.breach(s, z);
+    if (z >= 0) {
+      s.zones.breach(s, z);
+      s.stats.moment('firstZoneBreached', tick, x, y);
+    }
     spawnZombie(s, x, y, s.outbreak.pickType(s.rng, tick));
   }
   const d = s.corpses;

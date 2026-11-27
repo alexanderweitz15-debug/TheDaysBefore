@@ -1,15 +1,17 @@
 // The simulation world: generated city, horde, civilians, outbreak. Runs the systems in GDD 4 order on a
 // shared SimState; the systems live in horde/, infection/, population/ and systems/.
 import type { Command } from '../core/commands';
-import { createHash, type HashState, hashU32, hashView } from '../core/hash';
+import { createHash, type HashState } from '../core/hash';
 import { TICK_RATE } from '../core/loop';
 import type { StructureView, UnitView } from '../core/types/combat';
-import { CELL_SIZE_M, type CityMapData } from '../core/types/map';
+import { CELL_SIZE_M, type CityMapData, type CitySize } from '../core/types/map';
 import type { MissionView } from '../core/types/mission';
+import type { DebriefData } from '../core/types/outcome';
 import type {
   CreateWorld,
   DebugField,
   DebugFieldKind,
+  RestoreWorld,
   SimCounters,
   SimWorld,
   WorldOptions,
@@ -45,14 +47,18 @@ import { zombieAttacks } from './infection/attack';
 import { advanceInfection, startOutbreak } from './infection/incubation';
 import { generateCity, hashCityMap } from './map/generate';
 import { unitsFromRad } from './math/trig';
+import { buildDebrief } from './outcome/debrief';
+import { evaluateOutcome, setupResult } from './outcome/result';
 import { CS_INCUBATING } from './population/civilian-traits';
 import { moveFlight } from './population/flight-move';
 import { perceive } from './population/perception';
 import type { CivilianRoutine } from './population/routine';
 import { moveRoutine, type RoutineParams } from './population/routine-move';
 import { ZK_CORRIDOR, ZK_RALLY, ZK_SAFE } from './population/zones';
+import { checkSave, loadInto, serializeWorld } from './save/world-save';
 import { SimState } from './state';
 import { detonate, updateStructures } from './structures/structure-system';
+import { hashWorld } from './world-hash';
 import { findCenterCell, placeCivilians, placeResidents, placeWalkers } from './world-setup';
 
 /** Noise level shown as 255 in the debug field. */
@@ -65,9 +71,15 @@ export class CityWorld implements SimWorld {
   readonly s: SimState;
   private readonly params: ZombieMoveParams;
   private readonly routineParams: RoutineParams;
-  private readonly mapHash: number;
+  readonly mapHash: number;
+  readonly seed: number;
+  readonly size: CitySize;
+  /** Ticks stepped so far (save header). */
+  completedTicks = 0;
 
   constructor(seed: number, options: WorldOptions) {
+    this.seed = seed;
+    this.size = options.size;
     this.map = generateCity(seed, options.size);
     const s = new SimState(this.map, seed);
     this.s = s;
@@ -114,6 +126,7 @@ export class CityWorld implements SimWorld {
     if (sc) {
       setupEconomy(s, sc.startResources ?? {});
       setupMission(s, sc);
+      setupResult(s, sc);
     }
   }
 
@@ -276,63 +289,23 @@ export class CityWorld implements SimWorld {
     advanceInfection(s);
     advanceUnitInfection(s);
     updateStructures(s, tick);
+    evaluateOutcome(s, tick);
+    s.stats.record(s, tick);
     s.zones.publish(tick);
+    this.completedTicks = tick + 1;
   }
 
   hash(h: HashState): void {
-    const s = this.s;
-    hashU32(h, this.mapHash);
-    hashView(h, s.rng.getState());
-    for (const p of [s.zombies, s.civilians, s.corpses.pool]) {
-      const hw = p.highWater;
-      hashU32(h, hw);
-      hashU32(h, p.count);
-      hashView(h, p.freeSlots());
-      for (const a of [p.posX, p.posY, p.velX, p.velY, p.kind, p.alive, p.cell, p.target, p.hp])
-        hashView(h, a.subarray(0, hw));
-    }
-    const zhw = s.zombies.highWater;
-    for (const a of [s.zt.cooldown, s.zt.boostUntil, s.zt.screamAt]) hashView(h, a.subarray(0, zhw));
-    for (const a of s.ct.hashArrays(s.civilians.highWater)) hashView(h, a);
-    hashView(h, s.corpses.riseTick.subarray(0, s.corpses.pool.highWater));
-    hashView(h, s.zombieCells);
-    hashView(h, s.civilianCells);
-    hashView(h, s.infection);
-    hashView(h, s.noise.level);
-    for (const a of s.zones.hashArrays()) hashView(h, a);
-    for (const v of s.zones.hashValues()) hashU32(h, v);
-    hashView(h, s.safety.dirs);
-    for (const v of s.safety.hashValues()) hashU32(h, v);
-    for (const v of s.outbreak.hashValues()) hashU32(h, v);
-    const c = s.counters;
-    for (const v of [c.sheltered, c.incubating, c.civiliansDead, c.zombiesKilled, c.outbreakTick])
-      hashU32(h, v);
-    hashView(h, s.flow.dirs);
-    hashView(h, s.flow.dist);
-    hashU32(h, s.flow.progress());
-    hashU32(h, s.flow.currentDistance);
-    hashU32(h, s.flow.activeSignature);
-    hashView(h, s.goals.goalFlag);
-    hashU32(h, s.goals.lastStart);
-    hashU32(h, s.goals.forceRestart ? 1 : 0);
-    hashView(h, s.zt.unitTarget.subarray(0, zhw));
-    for (const v of [c.collateralKills, c.soldiersLost, c.budget]) hashU32(h, v);
-    for (const a of s.units.hashArrays()) hashView(h, a);
-    for (const v of s.planner.hashValues()) hashU32(h, v);
-    for (const a of s.projectiles.hashArrays()) hashView(h, a);
-    for (const a of s.structures.hashArrays()) hashView(h, a);
-    for (const v of s.structures.hashValues()) hashU32(h, v);
-    for (const a of [s.walkable, s.civWalk, s.zombieWalk, s.structAt, s.slowAt, s.suppressUntil])
-      hashView(h, a);
-    const r = s.routine;
-    const chw = s.civilians.highWater;
-    for (const a of [r.home, r.work, r.market, r.dest, r.timer]) hashView(h, a.subarray(0, chw));
-    hashU32(h, r.progress());
-    // Missions only: free mode keeps the M3 hash.
-    if (s.eco.active || s.mission.active) {
-      for (const a of [...s.eco.hashArrays(), ...s.mission.hashArrays()]) hashView(h, a);
-      for (const v of [...s.eco.hashValues(), ...s.mission.hashValues()]) hashU32(h, v);
-    }
+    hashWorld(h, this.s, this.mapHash);
+  }
+
+  /** Full debrief once the mission ended (null before). */
+  debrief(): DebriefData | null {
+    return buildDebrief(this.s);
+  }
+
+  serialize(): Uint8Array {
+    return serializeWorld(this);
   }
 
   writeZombies(out: AgentSection): void {
@@ -382,3 +355,11 @@ function writeSection(p: AgentPool, out: AgentSection, turnTick: Int32Array | nu
 }
 
 export const createWorld: CreateWorld = (seed, options) => new CityWorld(seed, options);
+
+/** Rebuilds the city from seed and options, then overwrites it with the saved state. */
+export const restoreWorld: RestoreWorld = (seed, options, state) => {
+  checkSave(state);
+  const w = new CityWorld(seed, options);
+  loadInto(w, state);
+  return w;
+};

@@ -21,6 +21,8 @@ import { ZombieTraits } from './horde/zombie-traits';
 import { Corpses } from './infection/corpses';
 import { Outbreak } from './infection/outbreak';
 import { isWalkable } from './map/grid';
+import { DebriefRecorder } from './outcome/recorder';
+import { MissionResult } from './outcome/result';
 import { SafetyField } from './pathing/safety-field';
 import { CivilianTraits } from './population/civilian-traits';
 import { CivilianRoutine } from './population/routine';
@@ -94,6 +96,10 @@ export class SimState {
   readonly eco: Economy;
   readonly mission = new Mission();
   readonly combat: CombatScratch;
+  /** Victory, defeat and score inputs (missions only). */
+  readonly result: MissionResult;
+  /** Debrief statistics (GDD 10 Auswertung). */
+  readonly stats: DebriefRecorder;
   /** Zombie flow goals; set by the world after setup. */
   goals!: ZombieGoals;
   /** Set when squads appear or vanish. */
@@ -135,6 +141,8 @@ export class SimState {
     this.unitHash = new SpatialHash(this.sizeM, this.noise.cellM, UNIT_ENGINE.capacity);
     this.planner = new PathPlanner(n, UNIT_ENGINE.capacity);
     this.combat = new CombatScratch(this);
+    this.result = new MissionResult(this.density.side * this.density.side);
+    this.stats = new DebriefRecorder(this.sizeM);
     this.eco = new Economy(map.buildings.count);
     this.placed = new Int32Array(Math.max(AGENT_CAPACITY.zombies, AGENT_CAPACITY.civilians));
   }

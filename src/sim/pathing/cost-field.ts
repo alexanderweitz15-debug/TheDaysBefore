@@ -132,6 +132,11 @@ export class CostFieldSolver {
     return 0;
   }
 
+  /** Buffers that no later read depends on while idle (left out of save games). */
+  scratch(): ArrayBufferView[] {
+    return this.busy ? [] : [this.dist, this.head, this.next, this.prev];
+  }
+
   /** Job progress, for the world hash. */
   progress(): number {
     return ((this.busy ? 0x80000000 : 0) | ((this.current & 0xffff) << 15) | (this.queued & 0x7fff)) >>> 0;

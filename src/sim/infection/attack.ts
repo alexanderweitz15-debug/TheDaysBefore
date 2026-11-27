@@ -8,6 +8,7 @@ import { UNIT_BEHAVIOUR } from '../../data/units/present';
 import { ATTACK_REACH_M, CIVILIAN_HP } from '../../data/zombies/viral-types';
 import { damageUnit, infectMember } from '../combat/unit-damage';
 import { TYPE_ATTACK_TICKS, TYPE_DAMAGE } from '../horde/zombie-traits';
+import { GRID_INFECTION, GRID_LOSSES } from '../outcome/recorder';
 import { isHiding } from '../population/perception';
 import type { SimState } from '../state';
 
@@ -102,6 +103,13 @@ export function infectCivilian(s: SimState, j: number): void {
   s.ct.turnTick[j] = s.tick + s.outbreak.incubationTicks(s.rng);
   s.counters.incubating++;
   s.markInfection(s.civilians.cell[j] as number, INFECTION_FIELD.bite);
+  const st = s.stats;
+  st.mark(GRID_INFECTION, s.civilians.posX[j] as number, s.civilians.posY[j] as number);
+  st.infections++;
+  if ((s.ct.zone[j] as number) >= 0) {
+    st.shelterInfections++;
+    if (st.shelterInfectionTick < 0) st.shelterInfectionTick = s.tick;
+  }
 }
 
 /**
@@ -120,6 +128,7 @@ export function killCivilian(s: SimState, j: number, bitten = true): void {
   );
   if (carrier) s.markInfection(cell, INFECTION_FIELD.bite);
   s.counters.civiliansDead++;
+  s.stats.mark(GRID_LOSSES, c.posX[j] as number, c.posY[j] as number);
   removeCivilian(s, j);
 }
 

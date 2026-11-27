@@ -256,6 +256,30 @@ export class CivilianRoutine {
     }
   }
 
+  /**
+   * Save games: with every field done since the last invalidate (and no walkability change pending), the fields
+   * follow from the walkable grid alone and are rebuilt on load instead of stored.
+   */
+  derivable(pathPending: boolean): ArrayBufferView[] {
+    if (!this.ready || this.recomputing || this.restart || pathPending) return this.solver.scratch();
+    return [this.dirs, ...this.solver.scratch()];
+  }
+
+  /** Recomputes every field at once, leaving the solver as the budgeted run did (load of a save game). */
+  rebuildFields(): void {
+    for (let f = 0; f < this.fieldCount; f++) {
+      this.solver.start(
+        this.seeds,
+        this.seedStart[f] as number,
+        this.seedStart[f + 1] as number,
+        this.dirs,
+        f * this.cells,
+      );
+      this.solver.advance(Number.POSITIVE_INFINITY);
+      this.fieldReady[f] = 1;
+    }
+  }
+
   /** Assigns home, work and market to a new civilian at its current cell and lets it dwell first. */
   assign(slot: number, cell: number, rng: Rng, dwellTicks: number): void {
     this.home[slot] = this.homeOfCluster[this.clusterOfCell(cell)] as number;

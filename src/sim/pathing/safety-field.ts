@@ -181,6 +181,12 @@ export class SafetyField {
     return out;
   }
 
+  /** Buffers that no later read depends on (left out of save games). */
+  scratch(): ArrayBufferView[] {
+    const solver = this.solver.scratch();
+    return this.busy ? solver : [this.back, this.cost, this.seeds, ...solver];
+  }
+
   hashValues(): number[] {
     return [
       this.ready,

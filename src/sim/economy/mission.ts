@@ -17,6 +17,7 @@ export const PHASE_NAMES: readonly MissionPhase[] = ['farm', 'outbreak', 'defens
 export const PH_FARM = 0;
 export const PH_OUTBREAK = 1;
 export const PH_DEFENSE = 2;
+export const PH_ENDED = 3;
 /** Warning states. */
 export const WS_PENDING = 0;
 export const WS_OPEN = 1;
@@ -255,7 +256,10 @@ export function missionTick(s: SimState, tick: number): void {
     }
     if (s.outbreak.started && m.phase === PH_FARM) beginOutbreak(s);
   } else if (m.phase === PH_OUTBREAK) {
-    if (s.zombies.count + s.counters.incubating > PHASES.outbreakToDefenseInfected) m.phase = PH_DEFENSE;
+    if (s.zombies.count + s.counters.incubating > PHASES.outbreakToDefenseInfected) {
+      m.phase = PH_DEFENSE;
+      s.stats.moment('defense', tick, m.pzX, m.pzY);
+    }
   }
   if (tick % ECONOMY_RULES.passTicks === 0) {
     economyPass(s);
