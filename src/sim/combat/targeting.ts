@@ -30,7 +30,7 @@ export class CombatScratch {
 
 /**
  * Nearest visible zombie to (qx, qy) within qr, also within [minR, maxR] of the shooter (sx, sy).
- * With `specials`, any non-walker beats every walker.
+ * With `specials`, any non-walker beats every walker. `own`: the shooter's building (garrison), else -1.
  */
 export function findTarget(
   s: SimState,
@@ -42,8 +42,10 @@ export function findTarget(
   qy: number,
   qr: number,
   specials: boolean,
+  own = -1,
 ): number {
   const dens = s.density;
+  const ids = own >= 0 ? s.map.buildingId : null;
   const side = dens.side;
   const count = dens.count;
   const zb = s.zombieBuckets;
@@ -94,7 +96,7 @@ export function findTarget(
               if (ds > max2 || ds < min2) continue;
               const score = specials && z.kind[j] === ZT_WALKER ? dq + SPECIAL_PENALTY : dq;
               if (score >= bestScore || (score === bestScore && j > best)) continue;
-              if (!lineClear(n, clear, sx / cm, sy / cm, zx / cm, zy / cm)) continue;
+              if (!lineClear(n, clear, sx / cm, sy / cm, zx / cm, zy / cm, ids, own)) continue;
               best = j;
               bestScore = score;
             }

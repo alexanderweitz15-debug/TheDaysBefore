@@ -41,6 +41,8 @@ export function hashWorld(h: HashState, s: SimState, mapHash: number): void {
   hashView(h, s.zt.unitTarget.subarray(0, zhw));
   for (const v of [c.collateralKills, c.soldiersLost, c.budget]) hashU32(h, v);
   for (const a of s.units.hashArrays()) hashView(h, a);
+  for (const a of s.orders.hashArrays()) hashView(h, a);
+  for (const v of s.orders.hashValues()) hashU32(h, v);
   for (const v of s.planner.hashValues()) hashU32(h, v);
   for (const a of s.projectiles.hashArrays()) hashView(h, a);
   for (const a of s.structures.hashArrays()) hashView(h, a);

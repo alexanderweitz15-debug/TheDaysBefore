@@ -17,6 +17,15 @@ export const FIRE_MODES: readonly FireMode[] = ['free', 'onCommand'];
 export const FM_FREE = 0;
 export const FM_ON_COMMAND = 1;
 
+/** Order state per unit: reserve (idle, returning), assigned (en route, at post, inside a building). */
+export const US_IDLE = 0;
+export const US_RETURNING = 1;
+export const US_EN_ROUTE = 2;
+export const US_POSTED = 3;
+export const US_GARRISONED = 4;
+/** Moved directly (MoveUnits): neither reserve nor order. */
+export const US_FREE = 5;
+
 /** Path state per unit. */
 export const PATH_NONE = 0;
 export const PATH_PENDING = 1;
@@ -99,6 +108,13 @@ export class Units {
   /** Turn ticks of infected members (MAX_SIZE per unit), first infCount used. */
   readonly infTurn: Int32Array;
   readonly infCount: Uint8Array;
+  /** Order system: order slot (-1 = reserve), post index in the order, state (US_*), occupied building (-1). */
+  readonly order: Int16Array;
+  readonly post: Uint8Array;
+  readonly ostate: Uint8Array;
+  readonly garrison: Int32Array;
+  /** Next tick the order system may re-send a squad that did not reach its goal. */
+  readonly retryAt: Int32Array;
   readonly maxCorners = UNIT_ENGINE.pathMaxCorners;
   readonly maxWaypoints = UNIT_ENGINE.maxWaypoints;
   readonly maxSize = MAX_SIZE;
@@ -143,6 +159,11 @@ export class Units {
     this.homeY = new Float32Array(capacity);
     this.infTurn = new Int32Array(capacity * MAX_SIZE);
     this.infCount = new Uint8Array(capacity);
+    this.order = new Int16Array(capacity).fill(-1);
+    this.post = new Uint8Array(capacity);
+    this.ostate = new Uint8Array(capacity);
+    this.garrison = new Int32Array(capacity).fill(-1);
+    this.retryAt = new Int32Array(capacity);
   }
 
   get count(): number {
@@ -201,6 +222,11 @@ export class Units {
         this.attackX,
         this.attackY,
         this.infCount,
+        this.order,
+        this.post,
+        this.ostate,
+        this.garrison,
+        this.retryAt,
       ].map((a) => a.subarray(0, hw)),
       per(this.pathX, this.maxCorners),
       per(this.pathY, this.maxCorners),
@@ -300,6 +326,11 @@ export function placeUnit(s: SimState, type: UnitTypeId, x: number, y: number, p
   U.homeX[u] = px;
   U.homeY[u] = py;
   U.infCount[u] = 0;
+  U.order[u] = -1;
+  U.post[u] = 0;
+  U.ostate[u] = US_IDLE;
+  U.garrison[u] = -1;
+  U.retryAt[u] = 0;
   U.cover[u] = coverAt(s, c);
   s.unitsDirty = true;
   return u;

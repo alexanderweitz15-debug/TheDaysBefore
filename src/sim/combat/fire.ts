@@ -12,11 +12,12 @@ import {
 } from '../../data/units/present';
 import { ZT_COLOSSUS, ZT_SCREAMER } from '../horde/zombie-traits';
 import { atan2Angle, cosU, RAD_PER_UNIT, unitsFromRad } from '../math/trig';
+import { sightBonus } from '../orders/garrison';
 import type { SimState } from '../state';
 import { explode, hitZombie } from './explosion';
 import { FX } from './fx';
 import { PT_SHELL, PT_TRACER } from './projectiles';
-import { aimMortar, findTarget, towerBonus } from './targeting';
+import { aimMortar, findTarget } from './targeting';
 import { loseMorale } from './unit-damage';
 import {
   FM_FREE,
@@ -197,7 +198,7 @@ export function fireUnits(s: SimState, tick: number): void {
     if (indirect) {
       if (tick % MORTAR.retargetEveryTicks === 0 || tick >= (U.nextScan[u] as number)) {
         U.nextScan[u] = tick + MORTAR.retargetEveryTicks;
-        U.rangeBonus[u] = towerBonus(s, x, y);
+        U.rangeBonus[u] = sightBonus(s, u, x, y);
         aimMortar(s, u, tick);
       }
     } else {
@@ -212,7 +213,7 @@ export function fireUnits(s: SimState, tick: number): void {
       if (!allowed) tg = -1;
       else if (tick >= (U.nextScan[u] as number)) {
         U.nextScan[u] = tick + UNIT_BEHAVIOUR.retargetEveryTicks;
-        U.rangeBonus[u] = towerBonus(s, x, y);
+        U.rangeBonus[u] = sightBonus(s, u, x, y);
         const r = (UT_RANGE[t] as number) + (U.rangeBonus[u] as number);
         const specials = UT_SPECIALS[t] === 1;
         tg = -1;
@@ -227,8 +228,10 @@ export function fireUnits(s: SimState, tick: number): void {
             U.attackY[u] as number,
             UNIT_BEHAVIOUR.focusRadiusM,
             specials,
+            U.garrison[u] as number,
           );
-        if (tg < 0 && U.fireMode[u] === FM_FREE) tg = findTarget(s, x, y, 0, r, x, y, r, specials);
+        if (tg < 0 && U.fireMode[u] === FM_FREE)
+          tg = findTarget(s, x, y, 0, r, x, y, r, specials, U.garrison[u] as number);
       }
       target[u] = tg;
     }

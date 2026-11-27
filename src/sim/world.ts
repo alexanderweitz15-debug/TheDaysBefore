@@ -6,6 +6,7 @@ import { TICK_RATE } from '../core/loop';
 import type { StructureView, UnitView } from '../core/types/combat';
 import { CELL_SIZE_M, type CityMapData, type CitySize } from '../core/types/map';
 import type { MissionView } from '../core/types/mission';
+import type { GarrisonView, OrderView, ReserveView } from '../core/types/orders';
 import type { DebriefData } from '../core/types/outcome';
 import type {
   CreateWorld,
@@ -34,7 +35,6 @@ import { SCREAMER } from '../data/zombies/viral-types';
 import { fireUnits } from './combat/fire';
 import { advanceUnitInfection } from './combat/unit-damage';
 import { applyUnitCommand, moveUnits } from './combat/unit-move';
-import { placeUnit } from './combat/units';
 import { missionTick, setupMission } from './economy/mission';
 import { applyMissionCommand, missionView } from './economy/mission-view';
 import { setupEconomy } from './economy/production';
@@ -47,6 +47,7 @@ import { zombieAttacks } from './infection/attack';
 import { advanceInfection, startOutbreak } from './infection/incubation';
 import { generateCity, hashCityMap } from './map/generate';
 import { unitsFromRad } from './math/trig';
+import { applyOrderCommand, buyUnit, orderViews, updateOrders } from './orders/order-system';
 import { buildDebrief } from './outcome/debrief';
 import { evaluateOutcome, setupResult } from './outcome/result';
 import { CS_INCUBATING } from './population/civilian-traits';
@@ -191,6 +192,13 @@ export class CityWorld implements SimWorld {
     this.s.fx.drain(out);
   }
 
+  get ordersVersion(): number {
+    return this.s.orders.version;
+  }
+  orders(): { orders: OrderView[]; reserve: ReserveView; garrisons: GarrisonView[] } {
+    return orderViews(this.s);
+  }
+
   mission(): MissionView {
     return missionView(this.s);
   }
@@ -229,7 +237,7 @@ export class CityWorld implements SimWorld {
       case 'PlaceUnit':
         // Militia only from conscripts (economy/population.ts).
         if (!UNITS[cmd.payload.unitType]?.notPlaceable)
-          placeUnit(s, cmd.payload.unitType, cmd.payload.x, cmd.payload.y);
+          buyUnit(s, cmd.payload.unitType, cmd.payload.x, cmd.payload.y);
         return;
       case 'PlaceStructure':
         s.structures.place(s, cmd.payload.kind, cmd.payload.points, cmd.payload.rotation);
@@ -241,7 +249,7 @@ export class CityWorld implements SimWorld {
         detonate(s, cmd.payload.id);
         return;
       default:
-        if (!applyMissionCommand(s, cmd)) applyUnitCommand(s, cmd);
+        if (!applyMissionCommand(s, cmd) && !applyOrderCommand(s, cmd)) applyUnitCommand(s, cmd);
         return;
     }
   }
@@ -282,6 +290,7 @@ export class CityWorld implements SimWorld {
     // Density from the same positions as the buckets, so combat can skip empty coarse cells consistently.
     s.density.build(s.zombies);
     moveZombies(s, this.params, tick);
+    updateOrders(s, tick);
     moveUnits(s, tick);
     screams(s);
     fireUnits(s, tick);

@@ -21,6 +21,7 @@ import { ZombieTraits } from './horde/zombie-traits';
 import { Corpses } from './infection/corpses';
 import { Outbreak } from './infection/outbreak';
 import { isWalkable } from './map/grid';
+import { Orders } from './orders/orders';
 import { DebriefRecorder } from './outcome/recorder';
 import { MissionResult } from './outcome/result';
 import { SafetyField } from './pathing/safety-field';
@@ -92,6 +93,8 @@ export class SimState {
   readonly projectiles = new Projectiles(UNIT_ENGINE.projectileCapacity);
   readonly fx = new FxBuffer(UNIT_ENGINE.fxCapacity);
   readonly structures = new Structures();
+  /** Orders, reserve bookkeeping and building integrity (no RTS). */
+  readonly orders: Orders;
   /** Economy and population (missions only; inactive in free mode). */
   readonly eco: Economy;
   readonly mission = new Mission();
@@ -144,6 +147,7 @@ export class SimState {
     this.result = new MissionResult(this.density.side * this.density.side);
     this.stats = new DebriefRecorder(this.sizeM);
     this.eco = new Economy(map.buildings.count);
+    this.orders = new Orders(map.buildings.count);
     this.placed = new Int32Array(Math.max(AGENT_CAPACITY.zombies, AGENT_CAPACITY.civilians));
   }
 

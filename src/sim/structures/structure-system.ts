@@ -269,11 +269,17 @@ function mines(s: SimState, tick: number): void {
 }
 
 /** Moves agents out of cells they may no longer stand in, to the nearest allowed neighbor cell. */
-function evictPool(s: SimState, pool: AgentPool, walk: Uint8Array, counts: Uint16Array | null): void {
+function evictPool(
+  s: SimState,
+  pool: AgentPool,
+  walk: Uint8Array,
+  counts: Uint16Array | null,
+  inside: Int32Array | null = null,
+): void {
   const n = s.n;
   const cm = s.cellM;
   for (let i = 0; i < pool.highWater; i++) {
-    if (!pool.alive[i]) continue;
+    if (!pool.alive[i] || (inside && (inside[i] as number) >= 0)) continue;
     const c = pool.cell[i] as number;
     if (walk[c]) continue;
     const x = c % n;
@@ -312,7 +318,7 @@ function refreshPathing(s: SimState, tick: number): void {
   const U = s.units;
   const p = U.pool;
   for (let u = 0; u < p.highWater; u++) {
-    if (!p.alive[u]) continue;
+    if (!p.alive[u] || (U.garrison[u] as number) >= 0) continue;
     U.cover[u] = coverAt(s, p.cell[u] as number);
     if (U.moving[u]) s.planner.request(s, u);
   }
@@ -334,7 +340,7 @@ export function updateStructures(s: SimState, tick: number): void {
     S.evictPending = false;
     evictPool(s, s.zombies, s.zombieWalk, s.zombieCells);
     evictPool(s, s.civilians, s.civWalk, s.civilianCells);
-    evictPool(s, s.units.pool, s.civWalk, null);
+    evictPool(s, s.units.pool, s.civWalk, null, s.units.garrison);
     s.civiliansDirty = true;
   }
   refreshPathing(s, tick);

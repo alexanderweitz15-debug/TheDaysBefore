@@ -1,9 +1,13 @@
 // Grid line test (Amanatides-Woo) in cell units: true if every cell the segment touches is clear. At exact corner
 // crossings both side cells must be clear (no squeezing through diagonal gaps).
 
+const ok = (clear: Uint8Array, ids: Int32Array | null, own: number, c: number): boolean =>
+  clear[c] === 1 || (ids !== null && ids[c] === own);
+
 /**
  * @param clear 1 = passable/transparent per cell, row-major n x n.
- * Coordinates in cells (meters / cell size).
+ * Coordinates in cells (meters / cell size). Cells with ids[c] === own count as clear (a garrison sees out of
+ * its own building).
  */
 export function lineClear(
   n: number,
@@ -12,6 +16,8 @@ export function lineClear(
   ay: number,
   bx: number,
   by: number,
+  ids: Int32Array | null = null,
+  own = -1,
 ): boolean {
   let cx = Math.floor(ax);
   let cy = Math.floor(ay);
@@ -28,7 +34,7 @@ export function lineClear(
   const tdy = dy !== 0 ? Math.abs(1 / dy) : Number.POSITIVE_INFINITY;
   const steps = Math.abs(ex - cx) + Math.abs(ey - cy) + 2;
   for (let k = 0; k <= steps; k++) {
-    if (!clear[cy * n + cx]) return false;
+    if (!ok(clear, ids, own, cy * n + cx)) return false;
     if (cx === ex && cy === ey) return true;
     if (tMaxX < tMaxY) {
       cx += sx;
@@ -37,7 +43,7 @@ export function lineClear(
       cy += sy;
       tMaxY += tdy;
     } else {
-      if (!clear[cy * n + cx + sx] || !clear[(cy + sy) * n + cx]) return false;
+      if (!ok(clear, ids, own, cy * n + cx + sx) || !ok(clear, ids, own, (cy + sy) * n + cx)) return false;
       cx += sx;
       cy += sy;
       tMaxX += tdx;

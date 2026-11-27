@@ -3,6 +3,7 @@
 import type { Command } from '../../core/commands';
 import { TICK_RATE } from '../../core/loop';
 import { UNIT_BEHAVIOUR, UNIT_ENGINE } from '../../data/units/present';
+import { leaveBuilding } from '../orders/garrison';
 import { ZK_RALLY, ZONE_STRIDE } from '../population/zones';
 import type { SimState } from '../state';
 import {
@@ -36,7 +37,7 @@ function validIds(s: SimState, ids: unknown): number[] {
   return out;
 }
 
-function setGoal(s: SimState, u: number, x: number, y: number, mode: number): void {
+export function setGoal(s: SimState, u: number, x: number, y: number, mode: number): void {
   const U = s.units;
   U.goalX[u] = Math.fround(Math.min(Math.max(x, 0), s.sizeM - 1e-3));
   U.goalY[u] = Math.fround(Math.min(Math.max(y, 0), s.sizeM - 1e-3));
@@ -44,7 +45,7 @@ function setGoal(s: SimState, u: number, x: number, y: number, mode: number): vo
   s.planner.request(s, u);
 }
 
-function stop(s: SimState, u: number): void {
+export function stop(s: SimState, u: number): void {
   const U = s.units;
   U.moving[u] = MV_NONE;
   U.pathState[u] = PATH_NONE;
@@ -88,6 +89,9 @@ export function applyUnitCommand(s: SimState, cmd: Command): boolean {
       const cols = Math.ceil(Math.sqrt(ids.length));
       const sp = UNIT_BEHAVIOUR.formationSpacingM;
       ids.forEach((u, k) => {
+        // Direct moves (bots, sandbox) take the squad off its order and out of a building.
+        s.orders.detach(s, u);
+        if ((U.garrison[u] as number) >= 0) leaveBuilding(s, u);
         const gx = x + ((k % cols) - (cols - 1) / 2) * sp;
         const gy = y + (Math.floor(k / cols) - (Math.ceil(ids.length / cols) - 1) / 2) * sp;
         if (append && U.moving[u] === MV_ORDER) {
@@ -150,6 +154,19 @@ export function moveUnits(s: SimState, tick: number): void {
   for (let u = 0; u < p.highWater; u++) {
     if (!alive[u]) continue;
     const t = p.kind[u] as number;
+
+    // Garrisons stay inside unless the stance or broken morale forces them out.
+    if ((U.garrison[u] as number) >= 0) {
+      const leave =
+        (U.stance[u] === ST_HOLD_UNTIL_LOSSES && U.strength(u) <= UNIT_BEHAVIOUR.lossRetreatThreshold) ||
+        (U.morale[u] as number) < UNIT_BEHAVIOUR.moraleBreakThreshold;
+      if (!leave) {
+        velX[u] = 0;
+        velY[u] = 0;
+        continue;
+      }
+      leaveBuilding(s, u);
+    }
 
     // Behaviour: losses, morale, pursuit.
     if (U.stance[u] === ST_HOLD_UNTIL_LOSSES && U.strength(u) <= UNIT_BEHAVIOUR.lossRetreatThreshold) {

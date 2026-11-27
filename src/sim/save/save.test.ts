@@ -60,6 +60,30 @@ describe('save: restore continues bit-identically', () => {
     checkRestores(w, cmds, [50, 230], 400, 120);
   }, 60_000);
 
+  it('orders: reserve, line, garrison, zone, update and cancel', () => {
+    const w = new CityWorld(SEED, { size: 'small' });
+    const B = w.s.map.buildings;
+    let b = 0;
+    while ((B.floors[b] as number) < 4 || (B.w[b] as number) < 3 || (B.h[b] as number) < 3) b++;
+    const bx = ((B.x[b] as number) + (B.w[b] as number) / 2) * 4;
+    const by = ((B.y[b] as number) + (B.h[b] as number) / 2) * 4;
+    const at = (tick: number, type: Command['type'], payload: object): Command =>
+      ({ tick, playerId: 0, type, payload }) as Command;
+    const cmds: Command[] = [
+      ...[0, 1, 2, 3, 4].map((k) =>
+        at(1, 'PlaceUnit', { unitType: k === 4 ? 'mgTeam' : 'infantry', x: 20 + 4 * k, y: 20 }),
+      ),
+      at(2, 'DefendLine', { points: [30, 60, 70, 60], squads: { infantry: 2, mgTeam: 1 }, stance: 'hold' }),
+      at(3, 'OccupyBuilding', { buildingId: b, squads: { infantry: 1 }, stance: 'hold' }),
+      at(4, 'HoldZone', { x0: 0, y0: 0, x1: 100, y1: 100, squads: { infantry: 1 }, stance: 'aggressive' }),
+      at(5, 'DebugSpawn', { x: bx + 16, y: by, count: 80, kind: 'zombie' }),
+      at(300, 'UpdateOrder', { orderId: 1, squads: { infantry: 1, mgTeam: 1 }, stance: 'aggressive' }),
+      at(500, 'CancelOrder', { orderId: 3 }),
+    ];
+    checkRestores(w, cmds, [40, 290, 301, 520], 700, 120);
+    expect(w.orders().orders.length).toBe(2);
+  }, 120_000);
+
   it('rejects other format versions and other cities', () => {
     const w = new CityWorld(SEED, missionOptions());
     runTo(w, [], 5);

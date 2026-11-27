@@ -69,6 +69,8 @@ function attackUnit(s: SimState, i: number, u: number, reach2: number): void {
     s.zt.unitTarget[i] = -1;
     return;
   }
+  // Garrisons cannot be attacked from the street; the building takes the pressure (orders/garrison.ts).
+  if ((s.units.garrison[u] as number) >= 0) return;
   const dx = (p.posX[u] as number) - (z.posX[i] as number);
   const dy = (p.posY[u] as number) - (z.posY[i] as number);
   if (dx * dx + dy * dy > reach2) return;

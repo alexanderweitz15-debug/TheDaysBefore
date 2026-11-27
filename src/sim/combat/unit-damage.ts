@@ -1,5 +1,6 @@
 // Squad losses (GDD 9, GDD 8): damage with cover, fallen members leave corpses, ranks from kills, morale loss,
 // bitten members turn into zombies after incubation.
+import { GARRISON } from '../../data/orders';
 import { UNIT_BEHAVIOUR } from '../../data/units/present';
 import { spawnZombie, ZT_COLOSSUS } from '../horde/zombie-traits';
 import { GRID_LOSSES } from '../outcome/recorder';
@@ -39,7 +40,12 @@ export function damageUnit(s: SimState, u: number, damage: number, byZombie: boo
   const p = U.pool;
   if (!p.alive[u] || damage <= 0) return;
   const t = p.kind[u] as number;
-  const d = U.cover[u] ? damage * (1 - UNIT_BEHAVIOUR.coverDamageReduction) : damage;
+  const d =
+    (U.garrison[u] as number) >= 0
+      ? damage * (1 - GARRISON.coverDamageReduction)
+      : U.cover[u]
+        ? damage * (1 - UNIT_BEHAVIOUR.coverDamageReduction)
+        : damage;
   const hp = (p.hp[u] as number) - d;
   p.hp[u] = hp;
   const left = hp > 0 ? Math.ceil(hp / (UT_HP[t] as number)) : 0;
@@ -75,6 +81,7 @@ function setMembers(s: SimState, u: number, left: number, risable: boolean): voi
 export function removeUnit(s: SimState, u: number): void {
   const U = s.units;
   if (!U.pool.alive[u]) return;
+  s.orders.unitGone(s, u);
   U.members[u] = 0;
   U.infCount[u] = 0;
   U.moving[u] = 0;
