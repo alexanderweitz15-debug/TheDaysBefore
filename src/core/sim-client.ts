@@ -5,6 +5,7 @@ import type { CommandSink, SimView } from './types/app';
 import type { StructureView, UnitView } from './types/combat';
 import type { CityMapData, CitySize } from './types/map';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
+import type { MissionView, ScenarioDef } from './types/mission';
 import type { DebugField, DebugFieldKind } from './types/sim';
 import { readSnapshot, type SnapshotView } from './types/snapshot';
 import type { ZoneView } from './types/zones';
@@ -16,6 +17,7 @@ export class SimClient implements SimView, CommandSink {
   debugField: DebugField | null = null;
   zones: ZoneView[] = [];
   units: UnitView[] = [];
+  mission: MissionView | null = null;
   structures: StructureView[] = [];
   private structureListeners: ((s: StructureView[]) => void)[] = [];
   private zoneListeners: ((z: ZoneView[]) => void)[] = [];
@@ -44,16 +46,40 @@ export class SimClient implements SimView, CommandSink {
   private currAt = 0;
   private snapshotListeners: ((s: SnapshotView) => void)[] = [];
   private mapListeners: ((m: CityMapData) => void)[] = [];
-  private readonly worker: Worker;
+  private worker: Worker;
 
   constructor(
     seed: number,
     size: CitySize,
     private readonly onError: (msg: Extract<FromWorker, { type: 'error' }>) => void,
+    scenario?: ScenarioDef,
   ) {
-    this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-    this.worker.onmessage = (ev: MessageEvent<FromWorker>) => this.receive(ev.data);
-    this.send({ type: 'init', seed, size });
+    this.worker = this.spawn(seed, size, scenario);
+  }
+
+  /**
+   * Starts a new world (briefing -> mission, restart). Listeners stay subscribed; all state is reset and
+   * onMap listeners fire again with the new map.
+   */
+  restart(seed: number, size: CitySize, scenario?: ScenarioDef): void {
+    this.worker.terminate();
+    this.prev = null;
+    this.curr = null;
+    this.prevBuffer = null;
+    this.map = null;
+    this.debugField = null;
+    this.zones = [];
+    this.units = [];
+    this.structures = [];
+    this.mission = null;
+    this.worker = this.spawn(seed, size, scenario);
+  }
+
+  private spawn(seed: number, size: CitySize, scenario?: ScenarioDef): Worker {
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (ev: MessageEvent<FromWorker>) => this.receive(ev.data);
+    worker.postMessage({ type: 'init', seed, size, ...(scenario ? { scenario } : {}) } satisfies ToWorker);
+    return worker;
   }
 
   submit(cmd: CommandInput): void {
@@ -79,9 +105,10 @@ export class SimClient implements SimView, CommandSink {
     };
   }
 
+  /** Fires now if a map exists and again for every new map (restart). */
   onMap(cb: (m: CityMapData) => void): () => void {
     if (this.map) cb(this.map);
-    else this.mapListeners.push(cb);
+    this.mapListeners.push(cb);
     return () => {
       this.mapListeners = this.mapListeners.filter((l) => l !== cb);
     };
@@ -119,10 +146,12 @@ export class SimClient implements SimView, CommandSink {
       case 'map':
         this.map = msg.map;
         for (const l of this.mapListeners) l(msg.map);
-        this.mapListeners = [];
         return;
       case 'debugField':
         this.debugField = msg.field;
+        return;
+      case 'mission':
+        this.mission = msg.mission;
         return;
       case 'units':
         this.units = msg.units;

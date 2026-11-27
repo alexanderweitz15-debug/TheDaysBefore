@@ -2,6 +2,7 @@
 import type { Command, CommandInput } from '../commands';
 import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
+import type { MissionView, ScenarioDef } from './mission';
 import type { DebugField, DebugFieldKind, SimCounters } from './sim';
 import type { ZoneView } from './zones';
 
@@ -22,7 +23,7 @@ export interface SimStats {
 }
 
 export type ToWorker =
-  | { type: 'init'; seed: number; size: CitySize }
+  | { type: 'init'; seed: number; size: CitySize; scenario?: ScenarioDef }
   | { type: 'command'; cmd: CommandInput }
   /** Hands a consumed snapshot buffer back for reuse. */
   | { type: 'returnBuffer'; buffer: ArrayBuffer }
@@ -36,4 +37,5 @@ export type FromWorker =
   | { type: 'zones'; zones: ZoneView[] }
   | { type: 'units'; units: UnitView[] }
   | { type: 'structures'; structures: StructureView[] }
+  | { type: 'mission'; mission: MissionView }
   | { type: 'error'; message: string; seed: number; commandLog: Command[] };

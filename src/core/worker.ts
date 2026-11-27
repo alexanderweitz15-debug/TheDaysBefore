@@ -46,6 +46,7 @@ let sentStructuresVersion = -1;
 let structuresSentAt = 0;
 let unitsSentAt = 0;
 let unitsSentCount = -1;
+let missionSentAt = -1000;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -100,6 +101,10 @@ function sendSnapshot(h: SimHost): void {
     structuresSentAt = h.tick;
     post({ type: 'structures', structures: w.structures() });
   }
+  if (h.tick - missionSentAt >= ZONES_RESEND_TICKS) {
+    missionSentAt = h.tick;
+    post({ type: 'mission', mission: w.mission() });
+  }
   if (h.tick - unitsSentAt >= UNITS_RESEND_TICKS || w.unitCount !== unitsSentCount) {
     unitsSentAt = h.tick;
     unitsSentCount = w.unitCount;
@@ -148,7 +153,13 @@ scope.onmessage = (ev: MessageEvent<ToWorker>) => {
     case 'init': {
       const t0 = performance.now();
       try {
-        host = new SimHost(msg.seed, { size: msg.size }, createWorld, onTickTimed, () => performance.now());
+        host = new SimHost(
+          msg.seed,
+          { size: msg.size, ...(msg.scenario ? { scenario: msg.scenario } : {}) },
+          createWorld,
+          onTickTimed,
+          () => performance.now(),
+        );
       } catch (err) {
         post({ type: 'error', message: String(err), seed: msg.seed, commandLog: [] });
         return;

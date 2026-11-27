@@ -3,6 +3,7 @@ import type { Command } from '../commands';
 import type { HashState } from '../hash';
 import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
+import type { MissionView, ScenarioDef } from './mission';
 import type { AgentSection } from './snapshot';
 import type { ZoneView } from './zones';
 
@@ -36,6 +37,8 @@ export interface SimWorld {
   /** Increments when structures are added/removed/change state; hp is resent once per second. */
   readonly structuresVersion: number;
   structures(): StructureView[];
+  /** Phase, economy, population, warnings; polled once per second by the worker. */
+  mission(): MissionView;
   /** Projectiles in flight: kind = projectile type index. */
   readonly projectileCount: number;
   writeProjectiles(out: AgentSection): void;
@@ -76,6 +79,8 @@ export interface WorldOptions {
   size: CitySize;
   /** Overrides the start budget (bench, sandbox). */
   startBudget?: number;
+  /** Mission setup. Without a scenario the world runs in free mode (no farm phase, legacy debug behaviour). */
+  scenario?: ScenarioDef;
 }
 
 export type CreateWorld = (seed: number, options: WorldOptions) => SimWorld;

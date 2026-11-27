@@ -43,7 +43,8 @@ export type UnitTypeId =
   | 'mortar'
   | 'engineers'
   | 'riotPolice'
-  | 'medics';
+  | 'medics'
+  | 'militia';
 export type Stance = 'hold' | 'holdUntilLosses' | 'aggressive' | 'retreat';
 export type FireMode = 'free' | 'onCommand';
 export type StructureKind =
@@ -75,6 +76,41 @@ export type PlaceStructureCommand = CommandBase<
 export type DemolishStructureCommand = CommandBase<'DemolishStructure', { id: number }>;
 export type DetonateChargeCommand = CommandBase<'DetonateCharge', { id: number }>;
 
+export type ResourceId = 'budget' | 'material' | 'fuel' | 'ammo' | 'medicine' | 'food' | 'power' | 'research';
+export type EconomyBuildingKind =
+  | 'hq'
+  | 'steelworks'
+  | 'scrapyard'
+  | 'chemicalPlant'
+  | 'ammoFactory'
+  | 'refinery'
+  | 'fuelDepot'
+  | 'powerPlant'
+  | 'generator'
+  | 'warehouse'
+  | 'hospital'
+  | 'pharma'
+  | 'lab'
+  | 'university'
+  | 'farm'
+  | 'market';
+
+/** Repurposes an existing city building (map building index) into an economy building (GDD 6). */
+export type RepurposeBuildingCommand = CommandBase<
+  'RepurposeBuilding',
+  { buildingId: number; kind: EconomyBuildingKind }
+>;
+/** Population assignment in percent; the remainder are free (GDD 6 Bevölkerung). */
+export type AssignWorkersCommand = CommandBase<
+  'AssignWorkers',
+  { workers: number; conscripts: number; helpers: number }
+>;
+export type SetDecreeCommand = CommandBase<'SetDecree', { decree: string; active: boolean }>;
+/** Investigates a warning sign (GDD 6): costs and time from data, rewards time/codex/vaccine progress. */
+export type InvestigateWarningCommand = CommandBase<'InvestigateWarning', { warningId: number }>;
+/** Classic start: triggers the outbreak on demand (GDD 6 Option "Klassischer Start"). */
+export type TriggerOutbreakCommand = CommandBase<'TriggerOutbreak', Record<string, never>>;
+
 export type PathogenFamily = 'viral' | 'bacterial' | 'fungal' | 'parasitic' | 'chemical' | 'nanotech';
 
 export type Command =
@@ -92,7 +128,12 @@ export type Command =
   | AttackAreaCommand
   | PlaceStructureCommand
   | DemolishStructureCommand
-  | DetonateChargeCommand;
+  | DetonateChargeCommand
+  | RepurposeBuildingCommand
+  | AssignWorkersCommand
+  | SetDecreeCommand
+  | InvestigateWarningCommand
+  | TriggerOutbreakCommand;
 export type CommandType = Command['type'];
 /** What UI and bots submit: the host assigns the tick. */
 export type CommandInput = Omit<Command, 'tick'>;

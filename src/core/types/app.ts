@@ -1,8 +1,9 @@
 // Contracts between main.ts, render (src/render) and ui (src/ui).
 import type { CommandInput } from '../commands';
 import type { StructureView, UnitView } from './combat';
-import type { CityMapData } from './map';
+import type { CityMapData, CitySize } from './map';
 import type { SimStats } from './messages';
+import type { MissionView, ScenarioDef } from './mission';
 import type { DebugField, DebugFieldKind } from './sim';
 import type { SnapshotView } from './snapshot';
 import type { ZoneView } from './zones';
@@ -19,7 +20,7 @@ export interface SimView {
   onSnapshot(cb: (s: SnapshotView) => void): () => void;
   /** City map, null until the worker has generated it. */
   readonly map: CityMapData | null;
-  /** Called once when the map is available (immediately if it already is). */
+  /** Called when the map is available (immediately if it already is) and again after every restart. */
   onMap(cb: (map: CityMapData) => void): () => void;
   /** Latest requested debug field, or null. */
   readonly debugField: DebugField | null;
@@ -33,10 +34,17 @@ export interface SimView {
   readonly units: UnitView[];
   readonly structures: StructureView[];
   onStructures(cb: (structures: StructureView[]) => void): () => void;
+  /** Mission state, null until the worker sent it (free mode sends it too). */
+  readonly mission: MissionView | null;
 }
 
 export interface CommandSink {
   submit(cmd: CommandInput): void;
+}
+
+/** Starts a new mission or restarts; render and ui keep their subscriptions. */
+export interface SessionControl {
+  restart(seed: number, size: CitySize, scenario?: ScenarioDef): void;
 }
 
 export interface RendererHandle {
@@ -50,6 +58,7 @@ export type CreateRenderer = (host: HTMLElement, sim: SimView) => Promise<Render
 export interface UiDeps {
   sim: SimView;
   commands: CommandSink;
+  session: SessionControl;
   renderer: RendererHandle;
 }
 
