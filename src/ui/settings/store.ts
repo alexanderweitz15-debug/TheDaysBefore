@@ -10,6 +10,12 @@ export type Language = (typeof LANGUAGES)[number];
 export const VIOLENCE_LEVELS = ['off', 'low', 'normal'] as const;
 export type Violence = (typeof VIOLENCE_LEVELS)[number];
 
+export const UNIT_BAR_MODES = ['always', 'damaged', 'never'] as const;
+export type UnitBarMode = (typeof UNIT_BAR_MODES)[number];
+
+export const PARTICLE_LEVELS = ['off', 'low', 'medium', 'high'] as const;
+export type ParticleLevel = (typeof PARTICLE_LEVELS)[number];
+
 export const SETTING_LIMITS = {
   /** Max corpse decals drawn (GDD 5, Atmosphäre). */
   corpseLimit: { min: CORPSE_LIMIT.min, max: CORPSE_LIMIT.max, step: CORPSE_LIMIT.step },
@@ -36,6 +42,13 @@ const schema = z.object({
   reducedMotion: z.boolean(),
   /** Zone removal waits a few seconds and can be undone (GDD 13, confirmations). */
   confirmRemoval: z.boolean(),
+  /** Health and ammo bars above own units (GDD 13, Lebensbalken). */
+  unitBars: z.enum(UNIT_BAR_MODES),
+  particles: z.enum(PARTICLE_LEVELS),
+  /** Short screen shake on heavy explosions (GDD 5). */
+  screenShake: z.boolean(),
+  /** No bright flashes at explosions or muzzles (photosensitivity, GDD 13). */
+  noFlashes: z.boolean(),
 });
 
 export type Settings = z.infer<typeof schema>;
@@ -54,6 +67,10 @@ export const SETTING_DEFAULTS: Settings = {
   patternMode: false,
   reducedMotion: false,
   confirmRemoval: true,
+  unitBars: 'damaged',
+  particles: 'medium',
+  screenShake: true,
+  noFlashes: false,
 };
 
 const spec: VersionedSpec<Settings> = {
@@ -81,6 +98,10 @@ export const settings: SettingSignals = {
   patternMode: signal(initial.patternMode),
   reducedMotion: signal(initial.reducedMotion),
   confirmRemoval: signal(initial.confirmRemoval),
+  unitBars: signal(initial.unitBars),
+  particles: signal(initial.particles),
+  screenShake: signal(initial.screenShake),
+  noFlashes: signal(initial.noFlashes),
 };
 
 function current(): Settings {
@@ -98,6 +119,10 @@ function current(): Settings {
     patternMode: settings.patternMode.peek(),
     reducedMotion: settings.reducedMotion.peek(),
     confirmRemoval: settings.confirmRemoval.peek(),
+    unitBars: settings.unitBars.peek(),
+    particles: settings.particles.peek(),
+    screenShake: settings.screenShake.peek(),
+    noFlashes: settings.noFlashes.peek(),
   };
 }
 
@@ -120,5 +145,9 @@ export function resetSettings(): void {
   settings.patternMode.value = SETTING_DEFAULTS.patternMode;
   settings.reducedMotion.value = SETTING_DEFAULTS.reducedMotion;
   settings.confirmRemoval.value = SETTING_DEFAULTS.confirmRemoval;
+  settings.unitBars.value = SETTING_DEFAULTS.unitBars;
+  settings.particles.value = SETTING_DEFAULTS.particles;
+  settings.screenShake.value = SETTING_DEFAULTS.screenShake;
+  settings.noFlashes.value = SETTING_DEFAULTS.noFlashes;
   saveVersioned(spec, current());
 }

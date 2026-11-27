@@ -11,7 +11,16 @@ import {
   ZONE_PICK_TOLERANCE_PX,
   ZONE_REMOVE_UNDO_MS,
 } from '../../data/render';
-import { activeTool, cameraView, screenToWorld, type ToolName, toolDraft } from '../../render/view-state';
+import {
+  activeTool,
+  buildArm,
+  cameraView,
+  screenToWorld,
+  selectedStructure,
+  selectedUnits,
+  type ToolName,
+  toolDraft,
+} from '../../render/view-state';
 import { settings } from '../settings/store';
 import { menuVisible, pendingRemoval, settingsOpen, toolNotice } from '../ui-state';
 
@@ -47,11 +56,19 @@ export function cancelTool(): boolean {
   }
   if (activeTool.value === 'none') return false;
   activeTool.value = 'none';
+  buildArm.value = null;
   resetDraft();
   return true;
 }
 
-function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+export function distToSegment(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
   const dx = bx - ax;
   const dy = by - ay;
   const l2 = dx * dx + dy * dy;
@@ -191,6 +208,8 @@ export function installZoneTools(sim: SimView, commands: CommandSink): () => voi
     if (!onCanvas(e)) return;
     e.preventDefault();
     if (cancelTool()) return;
+    // With units or a structure selected, right click is an order, not a removal.
+    if (selectedUnits.value.length > 0 || selectedStructure.value !== null) return;
     const p = screenToWorld(e.clientX, e.clientY);
     removeAt(p.x, p.y);
   };

@@ -90,6 +90,32 @@ export const palette = {
       airport: 0x68727c,
     },
   },
+  /** Combat effects. Warm tones only: white is civilians, green is own forces. */
+  combat: {
+    muzzle: 0xffc857,
+    tracer: 0xffb347,
+    shell: 0xe8863a,
+    fire: 0xff7a2e,
+    flash: 0xffe2a8,
+    spark: 0xffd27a,
+    smoke: 0x59616b,
+    debris: 0x6b5a4a,
+    shock: 0xffc98a,
+    crater: 0x0a0d10,
+  },
+  /** Own structures are drawn in friendly green; these are the extra tones. */
+  structure: {
+    rubble: 0x6b6258,
+    rubbleDark: 0x3a342e,
+    shade: 0x0a1f10,
+    damage: 0xffb347,
+  },
+  /** Placement preview: valid is friendly green, invalid the alert color plus a cross. */
+  preview: {
+    ok: 0x4fd16a,
+    bad: 0xe5323c,
+    attack: 0xe5323c,
+  },
   overlay: {
     flow: 0x6fa3d9,
     density: 0xffb347,

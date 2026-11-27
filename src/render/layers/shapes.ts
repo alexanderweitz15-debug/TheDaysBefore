@@ -3,7 +3,7 @@ import { Graphics, type Renderer, type Texture } from 'pixi.js';
 import type { ZombieShape } from '../../data/render';
 import { palette } from '../palette';
 
-export type ShapeName = ZombieShape | 'dot' | 'ring' | 'bar';
+export type ShapeName = ZombieShape | 'dot' | 'ring' | 'bar' | 'shock';
 
 function draw(shape: ShapeName, s: number): Graphics {
   const h = s / 2;
@@ -42,6 +42,9 @@ function draw(shape: ShapeName, s: number): Graphics {
       }
       return g.poly(pts).fill(base);
     }
+    case 'shock':
+      // Thin ring for pressure waves.
+      return g.circle(h, h, h * 0.94).stroke({ width: s * 0.07, color: base });
     case 'bar':
       return g.roundRect(0, s * 0.25, s, s * 0.5, s * 0.25).fill(base);
   }

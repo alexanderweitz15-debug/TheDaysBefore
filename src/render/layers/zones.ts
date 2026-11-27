@@ -21,7 +21,7 @@ import { palette } from '../palette';
 import { activeTool, toolDraft } from '../view-state';
 
 /** Strokes a polyline (flat x,y) as dashes of `dash` meters with `gap` meters between. */
-function dashed(g: Graphics, pts: readonly number[], dash: number, gap: number): void {
+export function dashed(g: Graphics, pts: readonly number[], dash: number, gap: number): void {
   let on = true;
   let left = dash;
   for (let i = 0; i + 3 < pts.length; i += 2) {

@@ -25,7 +25,7 @@ export function screenToWorld(sx: number, sy: number): { x: number; y: number } 
   };
 }
 
-export type ToolName = 'none' | 'corridor' | 'safeZone' | 'rallyPoint';
+export type ToolName = 'none' | 'corridor' | 'safeZone' | 'rallyPoint' | 'build' | 'attackArea';
 
 /** Active civil tool (keys K, Z, V). Set by the UI, drawn as a preview by the renderer. */
 export const activeTool = signal<ToolName>('none');
@@ -41,3 +41,30 @@ export const toolDraft = {
   cursorX: Number.NaN,
   cursorY: Number.NaN,
 };
+
+/** Unit ids selected by the player. Replaced (never mutated) so effects and layers can compare identity. */
+export const selectedUnits = signal<readonly number[]>([]);
+/** Structure selected by the player, or null. */
+export const selectedStructure = signal<number | null>(null);
+
+/** What the build tool (tool 'build') places. */
+export type BuildArm = { kind: 'unit'; unit: string } | { kind: 'structure'; structure: string };
+export const buildArm = signal<BuildArm | null>(null);
+/** Rotation for point structures, radians. */
+export const buildState = { rotation: 0 };
+
+/** Screen-space selection box while dragging, or null. */
+export const selectionBox = signal<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+
+/** One-shot camera request: the camera moves to (x, y) on its next update. */
+export const cameraRequest = { pending: false, x: 0, y: 0, zoom: 0 };
+/** zoom 0 keeps the current zoom. */
+export function jumpCamera(x: number, y: number, zoom = 0): void {
+  cameraRequest.x = x;
+  cameraRequest.y = y;
+  cameraRequest.zoom = zoom;
+  cameraRequest.pending = true;
+}
+
+/** Screen shake offset in px, written by the effects layer, added by the camera. */
+export const cameraShake = { x: 0, y: 0 };

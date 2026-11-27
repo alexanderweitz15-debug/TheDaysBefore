@@ -3,11 +3,15 @@ import { settingsOpen } from '../ui-state';
 import {
   LANGUAGES,
   type Language,
+  PARTICLE_LEVELS,
+  type ParticleLevel,
   resetSettings,
   SETTING_LIMITS,
   type Settings,
   setSetting,
   settings,
+  UNIT_BAR_MODES,
+  type UnitBarMode,
   VIOLENCE_LEVELS,
   type Violence,
 } from './store';
@@ -53,7 +57,9 @@ interface CheckProps {
     | 'devTools'
     | 'patternMode'
     | 'reducedMotion'
-    | 'confirmRemoval';
+    | 'confirmRemoval'
+    | 'screenShake'
+    | 'noFlashes';
   label: string;
   tip: string;
 }
@@ -130,6 +136,38 @@ export function SettingsPanel() {
           ))}
         </select>
       </div>
+      <div class="sz-field" title={t('settings.unitBars.tip')}>
+        <label for="set-unitBars">{t('settings.unitBars')}</label>
+        <select
+          id="set-unitBars"
+          data-tutorial-id="settings-unitBars"
+          value={settings.unitBars.value}
+          onChange={(e) => setSetting('unitBars', e.currentTarget.value as UnitBarMode)}
+        >
+          {UNIT_BAR_MODES.map((v) => (
+            <option key={v} value={v}>
+              {t(`settings.unitBars.${v}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div class="sz-field" title={t('settings.particles.tip')}>
+        <label for="set-particles">{t('settings.particles')}</label>
+        <select
+          id="set-particles"
+          data-tutorial-id="settings-particles"
+          value={settings.particles.value}
+          onChange={(e) => setSetting('particles', e.currentTarget.value as ParticleLevel)}
+        >
+          {PARTICLE_LEVELS.map((v) => (
+            <option key={v} value={v}>
+              {t(`settings.particles.${v}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Check id="screenShake" label={t('settings.screenShake')} tip={t('settings.screenShake.tip')} />
+      <Check id="noFlashes" label={t('settings.noFlashes')} tip={t('settings.noFlashes.tip')} />
       <Check id="patternMode" label={t('settings.patternMode')} tip={t('settings.patternMode.tip')} />
       <Check id="reducedMotion" label={t('settings.reducedMotion')} tip={t('settings.reducedMotion.tip')} />
       <Check

@@ -13,4 +13,8 @@ export const spawnArmed = signal(false);
 export const pendingRemoval = signal<number | null>(null);
 /** Short tool message key (e.g. corridor point limit), or null. */
 export const toolNotice = signal<MessageKey | null>(null);
+/** Active tab of the command bar. */
+export const commandTab = signal<'units' | 'defense' | 'civil'>('units');
+/** Structure id waiting for the second press to confirm demolition, or null. */
+export const demolishConfirm = signal<number | null>(null);
 export const outbreakArmed = signal(false);
