@@ -4,6 +4,7 @@ import { type HashState, hashU32 } from '../../src/core/hash';
 import { createRng, type Rng } from '../../src/core/rng';
 import type { StructureView, UnitView } from '../../src/core/types/combat';
 import { type CityMapData, NONE_U8 } from '../../src/core/types/map';
+import type { MissionView, ResourceView } from '../../src/core/types/mission';
 import type {
   DebugField,
   DebugFieldKind,
@@ -165,6 +166,13 @@ export class FakeWorld implements SimWorld {
     for (let i = 0; i < this.fxCount; i++) out.set([i % 6, i, i + 0.5, 1], i * 4);
   }
 
+  /** Free-mode view; tests may replace fields to exercise the UI and worker paths. */
+  missionView: MissionView = fakeMission();
+
+  mission(): MissionView {
+    return this.missionView;
+  }
+
   units(): UnitView[] {
     return [];
   }
@@ -180,6 +188,34 @@ export class FakeWorld implements SimWorld {
   debugField(_kind: DebugFieldKind): DebugField | null {
     return null;
   }
+}
+
+const emptyResource = (): ResourceView => ({ amount: 0, capacity: 0, perMin: 0 });
+
+/** A mission view of a world without scenario: phase defense, no countdown, nothing built. */
+export function fakeMission(): MissionView {
+  return {
+    phase: 'defense',
+    countdownTicks: null,
+    classicStart: false,
+    outbreakPressure: 0,
+    resources: {
+      budget: emptyResource(),
+      material: emptyResource(),
+      fuel: emptyResource(),
+      ammo: emptyResource(),
+      medicine: emptyResource(),
+      food: emptyResource(),
+      power: emptyResource(),
+      research: emptyResource(),
+    },
+    buildings: [],
+    population: { total: 0, workers: 0, conscripts: 0, helpers: 0, free: 0 },
+    morale: 70,
+    moraleFactors: [],
+    activeDecrees: [],
+    warnings: [],
+  };
 }
 
 export const createFakeWorld = (seed: number, options: WorldOptions): FakeWorld =>
