@@ -63,6 +63,8 @@ export function initZombie(s: SimState, i: number, type: number): void {
   s.zt.boostUntil[i] = 0;
   s.zt.screamAt[i] = 0;
   s.zt.unitTarget[i] = -1;
+  if (type === ZT_COLOSSUS)
+    s.stats.moment('firstColossus', s.tick, s.zombies.posX[i] as number, s.zombies.posY[i] as number);
 }
 
 /** Removes a zombie (combat from M3 on, tests now). Leaves a corpse that does not rise. */

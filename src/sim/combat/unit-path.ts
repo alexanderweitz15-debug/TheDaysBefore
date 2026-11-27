@@ -54,6 +54,12 @@ export class PathPlanner {
     this.queue = new Int32Array(capacity);
   }
 
+  /** Search buffers, dead between searches (stamps below gen); left out of save games. */
+  scratch(): ArrayBufferView[] {
+    if (this.current >= 0) return [];
+    return [this.g, this.parent, this.seen, this.closed, this.heapCell, this.heapF, this.chain];
+  }
+
   /** Queues unit u for a path to its goal (goalX/goalY). A running search for u restarts. */
   request(s: SimState, u: number): void {
     if (u === this.current) this.current = -1;

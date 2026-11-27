@@ -148,3 +148,22 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 06:30 | M4 | hauptagent | ENTSCHEIDUNG | Erste Infektionskette angenommen (GDD 6) | docs/DECISIONS.md | -
 2026-11-27 06:35 | M4 | qa-review | REVIEW | M4-Abnahme ohne Variable grün (5/5), 295 Tests, Bench im Ziel (gen-medium streut) | tests/m4-acceptance.test.ts docs/progress/M4.md | bestanden
 2026-11-27 06:35 | M4 | hauptagent | ABNAHME | M4 bestanden: Briefing -> Farmphase -> Ausbruch -> Verteidigung headless und im Browser durchgängig | docs/progress/M4.md | bestanden
+2026-11-27 06:39 | M4 | hauptagent | COMMIT | M4 auf main, CI grün (fast 59 s, slow 2:45 min) | - | 7b2bc7b
+2026-11-27 06:39 | M4 | hauptagent | STOPP | M4 auf main und Pages. Nächster Schritt M5 Spielbares Spiel | - | -
+2026-11-27 06:39 | M5 | hauptagent | START | Meilenstein M5 Spielbares Spiel begonnen | - | -
+2026-11-27 06:41 | M5 | hauptagent | PLAN | Plan M5; Schnittstellen outcome.ts, save.ts, debrief/save/load/replay im Worker, save-store mit IndexedDB und gzip; Daten scoring.ts | docs/plans/M5.md src/core/ src/data/scoring.ts | -
+2026-11-27 06:41 | M5 | sim-engine | AUFTRAG | A1 Sieg/Niederlage/Wertung, A2 Auswertungsdaten, A3 serialize/restoreWorld (frischer Agent) | src/sim/ | -
+2026-11-27 06:41 | M5 | gameplay-ui | AUFTRAG | B1 Pausenmenü, Speichern/Laden, Autosave, Auswertung, Einstellungen; B2 Szenarien, Schnelles Gefecht, Tutorial 1+2, Sound (frischer Agent) | src/ui/ src/render/ src/data/ | -
+2026-11-27 06:41 | M5 | qa-review | AUFTRAG | C1 fake-world, Abnahme Replay-Hash, Save/Load, Siegbedingungen vorbereiten | tests/ | -
+2026-11-27 06:42 | M5 | qa-review | FERTIG | fake-world debrief/serialize, Abnahme M5 vorbereitet (M5_ACCEPT=1): Replay-Hash, Save/Load bitgleich, vier Siege, zwei Niederlagen | tests/core/fake-world.ts tests/m5-acceptance.test.ts | 10 übersprungen, Rezepte teils Platzhalter
+2026-11-27 06:52 | M5 | gameplay-ui | FERTIG | B1 Pausenmenü, Speicherstände, Einstellungen in 5 Reitern, Auswertung; B2 drittes Szenario, Schnelles Gefecht, Tutorial 1+2, Audio | src/ui/ src/data/ src/render/ | nur im Harness geprüft (Sim noch ohne restoreWorld)
+2026-11-27 06:52 | M5 | hauptagent | ENTSCHEIDUNG | Feste Key-Listen für Wertung/Momente/Ursachen, Frame-Layout dokumentiert, ScenarioDef.unlosable für Tutorial | src/core/types/outcome.ts src/core/types/mission.ts | -
+2026-11-27 06:53 | M5 | gameplay-ui | FIX | Feste Keys in i18n mit Vollständigkeitsprüfung, unlosable in Tutorial-Szenarien, K/Z/V/P frei belegbar | src/ui/ src/data/ | tsc und Biome grün
+2026-11-27 07:01 | M5 | hauptagent | ENTSCHEIDUNG | Mensch wünscht übersichtlichere GUI; Analyse per Screenshot, Paket B3 HUD-Überarbeitung innerhalb GDD 14 | docs/plans/M5.md | -
+2026-11-27 07:01 | M5 | gameplay-ui | AUFTRAG | B3 HUD-Überarbeitung (frischer Agent) | src/ui/ src/render/ src/data/ | -
+2026-11-27 07:03 | M5 | sim-engine | FERTIG | A1 Sieg/Niederlage/Wertung, A2 Auswertungsdaten, A3 serialize/restoreWorld bitgleich | src/sim/outcome/ src/sim/save/ | 319 grün, Stand 1,17 MiB gzip, Bench im Ziel
+2026-11-27 07:03 | M5 | hauptagent | ENTSCHEIDUNG | Ursachen-Keys populationLost/timeLimit/collateral/lowMorale und Momente ammoOut/firstSoldierLost ergänzt | src/core/types/outcome.ts | -
+2026-11-27 07:05 | M5 | hauptagent | FIX | CAUSE_KEYS-Ergänzung nachgeholt (Ersetzen war an Formatierung gescheitert) | src/core/types/outcome.ts | -
+2026-11-27 07:05 | M5 | sim-engine | FIX | Jede Niederlage außer Aufgeben hat eine Ursache, Momente ammoOut/firstSoldierLost | src/sim/outcome/ | 21 Tests grün
+2026-11-27 07:16 | M5 | gameplay-ui | FERTIG | B3 HUD-Überarbeitung: Ressourcen-Chips, großer Countdown, Lage-Karte mit Zielen, Befehlsleiste mit Symbolen, Leistungsanzeige aus, neue Keys in i18n | src/ui/hud/ src/ui/styles.css src/data/ | tsc grün, 1280/1600/1920 geprüft; ein Test im ersten Lauf rot (instabil?)
+2026-11-27 07:16 | M5 | hauptagent | FEHLER | Möglicher instabiler Test (3 Fehler in einer Datei im ersten Lauf, zweiter Lauf grün) – Untersuchung durch qa-review | - | -

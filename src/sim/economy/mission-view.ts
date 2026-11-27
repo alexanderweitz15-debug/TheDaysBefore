@@ -1,7 +1,10 @@
 // MissionView for the UI (once per second) and the mission commands (GDD 6).
 import type { Command, ResourceId } from '../../core/commands';
 import type { EconomyBuildingView, MissionView, ResourceView } from '../../core/types/mission';
+import type { MissionOutcome } from '../../core/types/outcome';
 import { ECONOMY_RULES } from '../../data/economy/economy';
+import { DEFEAT_REASONS, DR_SURRENDER, endMission, VICTORY_KINDS } from '../outcome/result';
+import { objectiveViews, scoreView } from '../outcome/score';
 import type { SimState } from '../state';
 import { BOTTLENECKS, DECREE_IDS, EB_KINDS, MORALE_FACTORS, NR, R, RESOURCES } from './economy';
 import {
@@ -34,6 +37,9 @@ export function applyMissionCommand(s: SimState, cmd: Command): boolean {
       return true;
     case 'TriggerOutbreak':
       triggerOutbreak(s);
+      return true;
+    case 'Surrender':
+      endMission(s, false, DR_SURRENDER, s.tick);
       return true;
     default:
       return false;
@@ -132,5 +138,18 @@ export function missionView(s: SimState): MissionView {
     moraleFactors: e.active ? MORALE_FACTORS.map((key, k) => ({ key, value: e.factors[k] as number })) : [],
     activeDecrees: DECREE_IDS.filter((_, k) => e.decrees[k] === 1),
     warnings,
+    objectives: objectiveViews(s),
+    score: scoreView(s),
+    outcome: outcomeView(s),
+  };
+}
+
+export function outcomeView(s: SimState): MissionOutcome | null {
+  const r = s.result;
+  if (!r.ended) return null;
+  return {
+    result: r.victory ? 'victory' : 'defeat',
+    reason: (r.victory ? VICTORY_KINDS[r.reason] : DEFEAT_REASONS[r.reason]) as MissionOutcome['reason'],
+    tick: r.endTick,
   };
 }

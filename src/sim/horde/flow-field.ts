@@ -69,6 +69,11 @@ export class FlowField {
     return this.phase !== PHASE_IDLE;
   }
 
+  /** Buffers that no later read depends on while idle (left out of save games). */
+  scratch(): ArrayBufferView[] {
+    return this.busy ? [] : [this.work, this.seeds, ...this.buckets];
+  }
+
   /** Starts a new computation towards `cells[0..count)` (deduplicated by the caller or not; both work). */
   start(cells: Int32Array, count: number, signature: number): void {
     for (let k = 0; k < count; k++) this.seeds[k] = cells[k] as number;

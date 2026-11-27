@@ -17,8 +17,14 @@ export class SimHost {
     createWorld: CreateWorld,
     private readonly onTickTimed?: (ms: number) => void,
     private readonly now: () => number = () => 0,
+    /** Restoring a save: the restored world, its tick and the command log so far. */
+    restored?: { world: SimWorld; tick: number; log: readonly Command[] },
   ) {
-    this.world = createWorld(seed, options);
+    this.world = restored ? restored.world : createWorld(seed, options);
+    if (restored) {
+      this.tick = restored.tick;
+      this.queue.log.push(...restored.log);
+    }
     this.loop = new FixedStepLoop(() => this.runTick());
   }
 

@@ -6,6 +6,7 @@ import { MORTAR, UNIT_BEHAVIOUR } from '../../data/units/present';
 import { ZOMBIE_TYPE_SPECS } from '../../data/zombies/viral-types';
 import { killZombie, ZT_PATIENT_ZERO } from '../horde/zombie-traits';
 import { killCivilian } from '../infection/attack';
+import { GRID_COLLATERAL } from '../outcome/recorder';
 import type { SimState } from '../state';
 import { FX } from './fx';
 import { creditKill, damageUnit, loseMorale } from './unit-damage';
@@ -101,6 +102,8 @@ export function explode(
         s.fx.push(FX.death, cv.posX[j] as number, cv.posY[j] as number, 0);
         killCivilian(s, j, false);
         s.counters.collateralKills++;
+        s.stats.mark(GRID_COLLATERAL, x, y);
+        if (s.stats.collateralTick < 0) s.stats.collateralTick = s.tick;
         collateral++;
       }
     }

@@ -1,5 +1,6 @@
 // Web Worker entry: generates the world, runs the SimHost on a timer and posts snapshots back.
-import { createWorld } from '../sim/world';
+import { createWorld, restoreWorld } from '../sim/world';
+import { hashHex } from './hash';
 import { SimHost } from './sim-host';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
 import type { DebugFieldKind } from './types/sim';
@@ -47,6 +48,8 @@ let structuresSentAt = 0;
 let unitsSentAt = 0;
 let unitsSentCount = -1;
 let missionSentAt = -1000;
+let debriefSent = false;
+let pumping = false;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -103,7 +106,15 @@ function sendSnapshot(h: SimHost): void {
   }
   if (h.tick - missionSentAt >= ZONES_RESEND_TICKS) {
     missionSentAt = h.tick;
-    post({ type: 'mission', mission: w.mission() });
+    const mission = w.mission();
+    post({ type: 'mission', mission });
+    if (mission.outcome && !debriefSent) {
+      const debrief = w.debrief();
+      if (debrief) {
+        debriefSent = true;
+        post({ type: 'debrief', debrief });
+      }
+    }
   }
   if (h.tick - unitsSentAt >= UNITS_RESEND_TICKS || w.unitCount !== unitsSentCount) {
     unitsSentAt = h.tick;
@@ -124,7 +135,11 @@ function sendSnapshot(h: SimHost): void {
 }
 
 function pump(): void {
-  if (!host) return;
+  if (!host) {
+    pumping = false;
+    return;
+  }
+  pumping = true;
   const now = performance.now();
   try {
     const ran = host.loop.advance(now - lastTime);
@@ -147,6 +162,21 @@ function pump(): void {
   setTimeout(pump, POLL_MS);
 }
 
+/** The serialized state starts with a Uint32 tick (contract with sim/world.ts serialize()). */
+function readTick(state: Uint8Array): number {
+  return state.byteLength >= 4 ? new DataView(state.buffer, state.byteOffset, 4).getUint32(0, true) : 0;
+}
+
+function startRunning(h: SimHost): void {
+  debriefSent = false;
+  sentZonesVersion = -1;
+  sentStructuresVersion = -1;
+  lastTime = performance.now();
+  windowStart = lastTime;
+  sendSnapshot(h);
+  if (!pumping) pump();
+}
+
 scope.onmessage = (ev: MessageEvent<ToWorker>) => {
   const msg = ev.data;
   switch (msg.type) {
@@ -167,10 +197,68 @@ scope.onmessage = (ev: MessageEvent<ToWorker>) => {
       stats.worldGenMs = performance.now() - t0;
       // Structured clone copies the map; the worker keeps its own for the simulation.
       post({ type: 'map', map: host.world.map, worldGenMs: stats.worldGenMs });
-      lastTime = performance.now();
-      windowStart = lastTime;
-      sendSnapshot(host);
-      pump();
+      startRunning(host);
+      break;
+    }
+    case 'load': {
+      const { save } = msg;
+      const options = { size: save.size, ...(save.scenario ? { scenario: save.scenario } : {}) };
+      try {
+        const world = restoreWorld(save.seed, options, save.state);
+        const tick = save.commands.length > 0 ? Math.max(...save.commands.map((c) => c.tick)) + 1 : 0;
+        host = new SimHost(save.seed, options, createWorld, onTickTimed, () => performance.now(), {
+          world,
+          tick: Math.max(tick, readTick(save.state)),
+          log: save.commands,
+        });
+      } catch (err) {
+        post({ type: 'error', message: `load failed: ${String(err)}`, seed: save.seed, commandLog: [] });
+        return;
+      }
+      post({ type: 'map', map: host.world.map, worldGenMs: 0 });
+      startRunning(host);
+      break;
+    }
+    case 'save': {
+      if (!host) return;
+      post({
+        type: 'save',
+        requestId: msg.requestId,
+        save: {
+          seed: host.seed,
+          size: host.options.size,
+          scenario: host.options.scenario ?? null,
+          state: host.world.serialize(),
+          commands: host.queue.log.slice(),
+          tick: host.tick,
+        },
+      });
+      break;
+    }
+    case 'replay': {
+      if (!host) return;
+      post({
+        type: 'replay',
+        requestId: msg.requestId,
+        replay: {
+          formatVersion: 1,
+          seed: host.seed,
+          size: host.options.size,
+          scenario: host.options.scenario ?? null,
+          commands: host.queue.log.slice(),
+          endTick: host.tick,
+          endHash: hashHex(host.hash()),
+        },
+      });
+      break;
+    }
+    case 'verifyReplay': {
+      const r = msg.replay;
+      const options = { size: r.size, ...(r.scenario ? { scenario: r.scenario } : {}) };
+      const check = new SimHost(r.seed, options, createWorld);
+      for (const cmd of r.commands) check.enqueue(cmd);
+      while (check.tick < r.endTick) check.runTick();
+      post({ type: 'verifyReplay', requestId: msg.requestId, hash: hashHex(check.hash()), tick: check.tick });
       break;
     }
     case 'command':

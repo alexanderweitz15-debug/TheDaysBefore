@@ -2,6 +2,7 @@
 // bitten members turn into zombies after incubation.
 import { UNIT_BEHAVIOUR } from '../../data/units/present';
 import { spawnZombie, ZT_COLOSSUS } from '../horde/zombie-traits';
+import { GRID_LOSSES } from '../outcome/recorder';
 import type { SimState } from '../state';
 import { FX } from './fx';
 import { PATH_NONE, UT_HP, UT_MORALE_LOSS } from './units';
@@ -55,6 +56,8 @@ function setMembers(s: SimState, u: number, left: number, risable: boolean): voi
   const x = p.posX[u] as number;
   const y = p.posY[u] as number;
   s.counters.soldiersLost += lost;
+  for (let k = 0; k < lost; k++) s.stats.mark(GRID_LOSSES, x, y);
+  s.stats.moment('firstSoldierLost', s.tick, x, y);
   for (let k = 0; k < lost; k++) {
     s.corpses.add(x, y, s.outbreak.familyIndex, risable ? s.outbreak.riseTick(s.rng, s.tick) : -1);
     s.fx.push(FX.death, x, y, 0);
@@ -114,6 +117,8 @@ export function advanceUnitInfection(s: SimState): void {
       const members = (U.members[u] as number) - 1;
       p.hp[u] = Math.min(p.hp[u] as number, members * (UT_HP[t] as number));
       s.counters.soldiersLost++;
+      s.stats.mark(GRID_LOSSES, x, y);
+      s.stats.moment('firstSoldierLost', s.tick, x, y);
       U.members[u] = members;
       const type =
         s.rng.nextFloat() < UNIT_BEHAVIOUR.soldierColossusChance

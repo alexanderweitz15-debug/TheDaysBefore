@@ -1,6 +1,7 @@
 // Transient UI state shared between screens.
 import { signal } from '@preact/signals';
 import type { ScenarioDef } from '../core/types/mission';
+import type { DebriefData } from '../core/types/outcome';
 import type { MessageKey } from '../data/i18n/de';
 
 export const menuVisible = signal(true);
@@ -33,3 +34,21 @@ export const activeScenario = signal<ScenarioDef | null>(null);
 export const loadingState = signal<{ startedAt: number; scenario: ScenarioDef | null } | null>(null);
 /** Warning sign whose popover is open, or null. */
 export const openWarning = signal<number | null>(null);
+
+/** Active tab of the settings panel. */
+export const settingsTab = signal<'game' | 'graphics' | 'audio' | 'controls' | 'interface'>('game');
+
+/** Save/load panel mode inside the pause menu, or null. */
+export const savesMode = signal<'save' | 'load' | null>(null);
+/** Pending confirmation in the pause menu. */
+export const confirmAction = signal<'restart' | 'surrender' | 'main' | null>(null);
+/** Debrief screen (GDD 10) with its data. */
+export const debriefOpen = signal(false);
+/** Tutorial lesson list visible in the main menu. */
+export const tutorialMenuOpen = signal(false);
+/** Running lesson id, null outside the tutorial. */
+export const activeLessonId = signal<string | null>(null);
+/** Short feedback line of the saves panel (i18n key), or null. */
+export const saveNotice = signal<string | null>(null);
+/** Debrief data of the finished mission. */
+export const debriefData = signal<DebriefData | null>(null);

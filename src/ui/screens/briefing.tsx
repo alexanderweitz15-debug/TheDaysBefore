@@ -16,8 +16,11 @@ const key = (s: ScenarioDef, f: 'name' | 'briefing' | 'goal'): string => tryT(`s
 const rgb = (c: number): [number, number, number] => [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 
 /** Paints the city map into a small RGBA image plus the patient-zero candidates (normalized). */
-function paintPreview(m: CityMapData, site: string): { img: ImageData; marks: Array<[number, number]> } {
-  const S = PREVIEW_SIZE_PX;
+export function paintPreview(
+  m: CityMapData,
+  site: string,
+  S: number = PREVIEW_SIZE_PX,
+): { img: ImageData; marks: Array<[number, number]> } {
   const img = new ImageData(S, S);
   const px = img.data;
   const roofs = Object.values(palette.map.roofs).map(rgb);

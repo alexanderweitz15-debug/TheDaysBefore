@@ -5,6 +5,7 @@ import { createRng, type Rng } from '../../src/core/rng';
 import type { StructureView, UnitView } from '../../src/core/types/combat';
 import { type CityMapData, NONE_U8 } from '../../src/core/types/map';
 import type { MissionView, ResourceView } from '../../src/core/types/mission';
+import type { DebriefData } from '../../src/core/types/outcome';
 import type {
   DebugField,
   DebugFieldKind,
@@ -173,6 +174,26 @@ export class FakeWorld implements SimWorld {
     return this.missionView;
   }
 
+  /** Set by tests that exercise the debrief path; the fake never ends a mission by itself. */
+  debriefData: DebriefData | null = null;
+
+  debrief(): DebriefData | null {
+    return this.debriefData;
+  }
+
+  /** Bytes 0..3 tick count, 4..7 format version, then the fake's own counters (SimWorld.serialize contract). */
+  serialize(): Uint8Array {
+    const out = new Uint8Array(24);
+    const v = new DataView(out.buffer);
+    v.setUint32(0, this.lastStep + 1, true);
+    v.setUint32(4, 1, true);
+    v.setUint32(8, this.acc, true);
+    v.setUint32(12, this.stepsRun, true);
+    v.setUint32(16, this.zombieCount, true);
+    v.setUint32(20, this.civilianCount, true);
+    return out;
+  }
+
   units(): UnitView[] {
     return [];
   }
@@ -215,6 +236,9 @@ export function fakeMission(): MissionView {
     moraleFactors: [],
     activeDecrees: [],
     warnings: [],
+    objectives: [],
+    score: { lines: [], multiplier: 1, total: 0, medal: 'none' },
+    outcome: null,
   };
 }
 

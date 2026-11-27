@@ -24,7 +24,7 @@ export interface MenuEntry {
 }
 
 /** Highest milestone implemented so far. Raise when a milestone ships. */
-export const BUILT_MILESTONE = 4;
+export const BUILT_MILESTONE = 5;
 
 const entry = (id: MenuEntryId, unlock: number): MenuEntry => ({
   id,

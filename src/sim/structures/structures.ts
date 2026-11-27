@@ -294,7 +294,11 @@ export class Structures {
     if (!this.alive[i] || this.state[i] === SS_DESTROYED) return;
     const hp = (this.hp[i] as number) - amount * (1 - (SK_ARMOR[this.kind[i] as number] as number));
     this.hp[i] = hp;
-    if (hp <= 0) this.destroy(s, i, tick);
+    if (hp > 0) return;
+    // Destroyed by damage (not by own charges): the debrief's first wall lost.
+    if (SK_BLOCKS[this.kind[i] as number] || this.kind[i] === SK.gate)
+      s.stats.wallLost(s, this.cx[i] as number, this.cy[i] as number, tick);
+    this.destroy(s, i, tick);
   }
 
   /** Charges (destroysStructures): structures whose center is within r (+ half their length) are destroyed. */
