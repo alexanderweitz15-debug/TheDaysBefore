@@ -68,3 +68,9 @@ export function jumpCamera(x: number, y: number, zoom = 0): void {
 
 /** Screen shake offset in px, written by the effects layer, added by the camera. */
 export const cameraShake = { x: 0, y: 0 };
+
+/** City building (map.buildings index) picked for repurposing in the economy window, or null. */
+export const repurposeTarget = signal<number | null>(null);
+
+/** Baking progress of the current map, written by the renderer; the loading screen polls it. */
+export const mapBake: { map: object | null; progress: number } = { map: null, progress: 0 };

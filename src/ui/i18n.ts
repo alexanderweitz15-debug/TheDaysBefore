@@ -17,3 +17,14 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
 export function numberLocale(): string {
   return settings.language.value === 'de' ? 'de-DE' : 'en-US';
 }
+
+/** Translates a key that may not exist (data-driven suffixes); falls back to the raw key. */
+export function tryT(key: string, params?: Record<string, string | number>): string {
+  return key in de ? t(key as MessageKey, params) : key;
+}
+
+/** Formats seconds as m:ss. */
+export function clock(totalS: number): string {
+  const s = Math.max(0, Math.round(totalS));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}

@@ -14,10 +14,16 @@ import { PerfOverlay } from './hud/perf-overlay';
 import { SelectionBox } from './hud/selection-box';
 import { ToolHint } from './hud/status-hud';
 import { TopBar } from './hud/top-bar';
+import { WarningMarkers } from './hud/warning-markers';
 import { applyPaletteVars } from './palette-vars';
+import { Briefing } from './screens/briefing';
+import { LoadingScreen } from './screens/loading';
 import { MainMenu } from './screens/main-menu';
+import { bindSession } from './session';
 import { SettingsPanel } from './settings/settings-panel';
 import { settings } from './settings/store';
+import { installEconomyKeys } from './tools/economy-keys';
+import { SidePanel } from './windows/side-panel';
 import '@fontsource/inter/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
@@ -28,7 +34,17 @@ import { installBuildTool } from './tools/build-tool';
 import { installGameKeys } from './tools/game-keys';
 import { installSelectTool } from './tools/select-tool';
 import { cancelTool, installZoneTools } from './tools/zone-tools';
-import { debugOpen, menuVisible, outbreakArmed, settingsOpen, spawnArmed } from './ui-state';
+import {
+  activeScenario,
+  briefingOpen,
+  debugOpen,
+  loadingState,
+  menuVisible,
+  outbreakArmed,
+  settingsOpen,
+  sidePanel,
+  spawnArmed,
+} from './ui-state';
 
 function App({ deps }: { deps: UiDeps }) {
   useEffect(() => {
@@ -41,7 +57,11 @@ function App({ deps }: { deps: UiDeps }) {
         selectedStructure.value = null;
         return;
       }
-      if (spawnArmed.value || outbreakArmed.value) {
+      if (briefingOpen.value) {
+        briefingOpen.value = false;
+        menuVisible.value = true;
+      } else if (sidePanel.value) sidePanel.value = null;
+      else if (spawnArmed.value || outbreakArmed.value) {
         spawnArmed.value = false;
         outbreakArmed.value = false;
       } else if (debugOpen.value) debugOpen.value = false;
@@ -53,25 +73,39 @@ function App({ deps }: { deps: UiDeps }) {
   }, []);
 
   useEffect(() => installOverlayHotkey(deps.sim), [deps.sim]);
+  useEffect(() => installEconomyKeys(), []);
   useEffect(() => installZoneTools(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installSelectTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installBuildTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installAttackTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installGameKeys(deps.sim, deps.commands), [deps.sim, deps.commands]);
 
+  // HUD only in the game: not behind briefing, loading screen or the free-mode main menu.
+  const hud =
+    !briefingOpen.value &&
+    loadingState.value === null &&
+    !(menuVisible.value && activeScenario.value === null);
   return (
     <>
       <MainMenu />
+      <Briefing />
+      {hud && <WarningMarkers sim={deps.sim} commands={deps.commands} />}
+      {hud && <SidePanel sim={deps.sim} commands={deps.commands} />}
       {menuVisible.value && settingsOpen.value && <SettingsPanel />}
       <PerfOverlay sim={deps.sim} renderer={deps.renderer} />
-      <TopBar sim={deps.sim} commands={deps.commands} />
-      <ContextPanel sim={deps.sim} commands={deps.commands} />
-      <CommandBar sim={deps.sim} />
-      <Minimap sim={deps.sim} />
-      <SelectionBox />
-      <ToolHint />
+      {hud && (
+        <>
+          <TopBar sim={deps.sim} commands={deps.commands} />
+          <ContextPanel sim={deps.sim} commands={deps.commands} />
+          <CommandBar sim={deps.sim} />
+          <Minimap sim={deps.sim} />
+          <SelectionBox />
+          <ToolHint />
+        </>
+      )}
       <LoadingHint sim={deps.sim} />
       <OverlayBadge />
+      <LoadingScreen sim={deps.sim} />
       <DebugPanel sim={deps.sim} commands={deps.commands} />
     </>
   );
@@ -79,6 +113,7 @@ function App({ deps }: { deps: UiDeps }) {
 
 export const mountUi: MountUi = (root, deps) => {
   applyPaletteVars(root);
+  bindSession(deps.session);
   // UI scale: all sizes are rem, so scaling the root font size scales the whole UI.
   effect(() => {
     document.documentElement.style.fontSize = `${(16 * settings.uiScale.value) / 100}px`;

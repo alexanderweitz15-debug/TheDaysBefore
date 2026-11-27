@@ -116,6 +116,13 @@ export const palette = {
     bad: 0xe5323c,
     attack: 0xe5323c,
   },
+  /** Economy building outlines on the map: own buildings accent blue, bottleneck alert red (plus cross), pick focus amber. */
+  economy: {
+    operating: sem(0x6fa3d9, 'outline'),
+    building: sem(0x3d6d99, 'hatch'),
+    bottleneck: sem(0xe5323c, 'exclamation'),
+    pick: sem(0xffb347, 'double-line'),
+  },
   overlay: {
     flow: 0x6fa3d9,
     density: 0xffb347,
@@ -133,6 +140,7 @@ export const palette = {
     accent: 0x6fa3d9,
     accentSoft: 0x1e3a57,
     danger: 0xe5323c,
+    warn: 0xffd166,
     focus: 0xffb347,
   },
 } as const;

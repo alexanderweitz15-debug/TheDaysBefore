@@ -22,6 +22,7 @@ export const UNIT_GEAR: Record<
   { weaponM: number; weaponW: number; gear: 'none' | 'tripod' | 'tube' | 'pack' | 'shield' | 'bag' | 'scope' }
 > = {
   infantry: { weaponM: 0.7, weaponW: 0.05, gear: 'none' },
+  militia: { weaponM: 0.5, weaponW: 0.05, gear: 'none' },
   mgTeam: { weaponM: 0.9, weaponW: 0.09, gear: 'tripod' },
   sniperTeam: { weaponM: 1.2, weaponW: 0.04, gear: 'scope' },
   mortar: { weaponM: 0.9, weaponW: 0.14, gear: 'tube' },

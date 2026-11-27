@@ -1,5 +1,6 @@
 // Transient UI state shared between screens.
 import { signal } from '@preact/signals';
+import type { ScenarioDef } from '../core/types/mission';
 import type { MessageKey } from '../data/i18n/de';
 
 export const menuVisible = signal(true);
@@ -18,3 +19,17 @@ export const commandTab = signal<'units' | 'defense' | 'civil'>('units');
 /** Structure id waiting for the second press to confirm demolition, or null. */
 export const demolishConfirm = signal<number | null>(null);
 export const outbreakArmed = signal(false);
+
+/** Side window (GDD 14 Fenster). The game keeps running while one is open. */
+export type SidePanelId = 'economy' | 'population' | 'decrees';
+export const sidePanel = signal<SidePanelId | null>(null);
+/** Briefing screen visible (scenario chosen in the main menu). */
+export const briefingOpen = signal(false);
+/** Id of the scenario shown in the briefing. */
+export const briefingScenarioId = signal<string | null>(null);
+/** Scenario of the running mission, null in free mode (menu background). */
+export const activeScenario = signal<ScenarioDef | null>(null);
+/** Loading screen state: set from "start" until the map is drawn and the first mission state arrived. */
+export const loadingState = signal<{ startedAt: number; scenario: ScenarioDef | null } | null>(null);
+/** Warning sign whose popover is open, or null. */
+export const openWarning = signal<number | null>(null);

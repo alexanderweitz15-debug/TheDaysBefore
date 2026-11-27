@@ -1,5 +1,6 @@
 // Camera: pans and zooms the world container. No rotation. 1 m = 1 px at zoom 1.
 import type { Container } from 'pixi.js';
+import { FIT_INSET_BOTTOM_PX, FIT_INSET_TOP_PX, FIT_MARGIN } from '../data/render';
 import { settings } from '../ui/settings/store';
 import { cameraRequest, cameraShake, cameraView } from './view-state';
 
@@ -138,10 +139,20 @@ export class Camera {
     this.worldH = heightM;
     if (this.fitted || widthM <= 0 || heightM <= 0 || this.w === 0) return;
     this.fitted = true;
+    // Fit into the area between the top bar and the command bar.
+    const availH = Math.max(1, this.h - FIT_INSET_TOP_PX - FIT_INSET_BOTTOM_PX);
+    this.zoom = Math.min(
+      ZOOM_MAX,
+      Math.max(ZOOM_MIN, Math.min(this.w / widthM, availH / heightM) * FIT_MARGIN),
+    );
     this.cx = widthM / 2;
-    this.cy = heightM / 2;
-    this.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(this.w / widthM, this.h / heightM) * 0.9));
+    this.cy = heightM / 2 + (this.h / 2 - (FIT_INSET_TOP_PX + availH / 2)) / this.zoom;
     this.apply();
+  }
+
+  /** Fits the whole world again on the next snapshot (new map after a restart). */
+  refit(): void {
+    this.fitted = false;
   }
 
   /** Per-frame input: held keys and edge scrolling. */

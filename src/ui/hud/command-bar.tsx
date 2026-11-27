@@ -6,10 +6,15 @@ import { UNIT_TYPE_ORDER, UNITS } from '../../data/units/present';
 import { activeTool, type BuildArm, buildArm, type ToolName } from '../../render/view-state';
 import { numberLocale, t } from '../i18n';
 import { cancelTool } from '../tools/zone-tools';
-import { commandTab } from '../ui-state';
+import { commandTab, type SidePanelId, sidePanel } from '../ui-state';
 import { usePoll } from './use-poll';
 
 const TABS = ['units', 'defense', 'civil'] as const;
+const WINDOWS: ReadonlyArray<{ id: SidePanelId; key: string }> = [
+  { id: 'economy', key: '' },
+  { id: 'population', key: 'P' },
+  { id: 'decrees', key: '' },
+];
 const STRUCTURE_ORDER: readonly StructureKind[] = [
   'barricade',
   'wall',
@@ -63,7 +68,7 @@ function Item({ id, label, cost, locked, active, onPick }: ItemProps) {
 
 export function CommandBar({ sim }: { sim: SimView }) {
   usePoll();
-  const budget = sim.stats.counters.budget;
+  const budget = sim.mission?.resources.budget.amount ?? sim.stats.counters.budget;
   const fmt = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
   const tab = commandTab.value;
   const tool = activeTool.value;
@@ -84,10 +89,24 @@ export function CommandBar({ sim }: { sim: SimView }) {
             {t(`cmd.tab.${id}`)}
           </button>
         ))}
+        <span class="sz-cmdbar__sep" aria-hidden="true" />
+        {WINDOWS.map((w) => (
+          <button
+            key={w.id}
+            type="button"
+            class="sz-btn sz-btn--compact"
+            aria-pressed={sidePanel.value === w.id}
+            title={w.key ? `${t(`win.${w.id}`)} (${w.key})` : t(`win.${w.id}`)}
+            data-tutorial-id={`cmd-win-${w.id}`}
+            onClick={() => (sidePanel.value = sidePanel.value === w.id ? null : w.id)}
+          >
+            {t(`win.${w.id}`)}
+          </button>
+        ))}
       </div>
       <div class="sz-cmdbar__items" role="tabpanel">
         {tab === 'units' &&
-          UNIT_TYPE_ORDER.map((u: UnitTypeId) => (
+          UNIT_TYPE_ORDER.filter((u) => u !== 'militia').map((u: UnitTypeId) => (
             <Item
               key={u}
               id={`unit-${u}`}

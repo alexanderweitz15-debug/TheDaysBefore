@@ -172,11 +172,13 @@ const sim: SimView = {
   },
   debugField: null,
   requestDebugField: () => undefined,
+  mission: null,
 };
 const renderer = await createRenderer(document.getElementById('map') as HTMLElement, sim);
 mountUi(document.getElementById('ui') as HTMLElement, {
   sim,
   commands: { submit: () => undefined },
+  session: { restart: () => undefined },
   renderer,
 });
 

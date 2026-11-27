@@ -5,12 +5,13 @@ import { DOUBLE_CLICK_MS, DRAG_THRESHOLD_PX, PICK_RADIUS_PX } from '../../data/h
 import {
   activeTool,
   cameraView,
+  repurposeTarget,
   screenToWorld,
   selectedStructure,
   selectedUnits,
   selectionBox,
 } from '../../render/view-state';
-import { menuVisible } from '../ui-state';
+import { menuVisible, sidePanel } from '../ui-state';
 import { distToSegment } from './zone-tools';
 
 const LOCAL_PLAYER = 0;
@@ -163,6 +164,18 @@ export function installSelectTool(sim: SimView, commands: CommandSink): () => vo
       selectedUnits.value = [];
       selectedStructure.value = st;
       return;
+    }
+    if (sidePanel.value === 'economy' && sim.map) {
+      // Economy window open: a click on a city building picks it for repurposing.
+      const m = sim.map;
+      const cx = Math.floor(p.x / m.cellSizeM);
+      const cy = Math.floor(p.y / m.cellSizeM);
+      const b =
+        cx >= 0 && cy >= 0 && cx < m.widthCells && cy < m.heightCells
+          ? (m.buildingId[cy * m.widthCells + cx] as number)
+          : -1;
+      repurposeTarget.value = b >= 0 ? b : null;
+      if (b >= 0) return;
     }
     if (!press.shift) {
       selectedUnits.value = [];

@@ -43,6 +43,10 @@ export interface UnitSpec {
   corridorBonus: number;
   canBuild: boolean;
   canHeal: boolean;
+  /** Morale loss multiplier (militia: morale-sensitive, GDD 9). */
+  moraleLossFactor: number;
+  /** Only raised by the sim (militia from conscripts), refused by PlaceUnit. */
+  notPlaceable: boolean;
 }
 
 /** Stable order: the snapshot units section uses the index into this list as kind. */
@@ -54,6 +58,7 @@ export const UNIT_TYPE_ORDER: readonly UnitTypeId[] = [
   'engineers',
   'riotPolice',
   'medics',
+  'militia',
 ];
 
 const base = {
@@ -66,6 +71,8 @@ const base = {
   corridorBonus: 0,
   canBuild: false,
   canHeal: false,
+  moraleLossFactor: 1,
+  notPlaceable: false,
 } as const;
 
 export const UNITS: Record<UnitTypeId, UnitSpec> = {
@@ -166,6 +173,22 @@ export const UNITS: Record<UnitTypeId, UnitSpec> = {
     ammo: 0,
     shotNoise: 0,
     canHeal: true,
+  },
+  // GDD 9: Miliz 10 x 80 HP, 30 m, 30 dps, 80 + 10 conscripts, morale-sensitive. Raised from conscripts, not bought.
+  militia: {
+    ...base,
+    size: 10,
+    hpPerMember: 80,
+    rangeM: 30,
+    dps: 30,
+    damageType: 'smallArms',
+    hitDamage: 10,
+    cost: 80,
+    speedMps: 1.5,
+    ammo: 300,
+    shotNoise: 25,
+    moraleLossFactor: 2,
+    notPlaceable: true,
   },
 };
 

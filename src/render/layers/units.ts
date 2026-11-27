@@ -257,6 +257,10 @@ function glyph(g: Graphics, type: UnitTypeId, x: number, y: number, w: number, h
       g.moveTo(l + w * i, t + h * i).lineTo(r - w * i, b - h * i);
       g.moveTo(r - w * i, t + h * i).lineTo(l + w * i, b - h * i);
       break;
+    case 'militia':
+      // Single diagonal stroke: light, no heavy gear.
+      g.moveTo(l + w * i, b - h * i).lineTo(r - w * i, t + h * i);
+      break;
     case 'mgTeam':
       g.moveTo(l + w * i, t + h * i).lineTo(r - w * i, b - h * i);
       g.moveTo(r - w * i, t + h * i).lineTo(l + w * i, b - h * i);

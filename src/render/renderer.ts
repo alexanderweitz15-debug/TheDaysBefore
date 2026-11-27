@@ -6,6 +6,7 @@ import { FpsMeter } from './fps';
 import { AgentsLayer } from './layers/agents';
 import { PreviewLayer } from './layers/build-preview';
 import { CorpseLayer } from './layers/corpses';
+import { EconomyLayer } from './layers/economy-marks';
 import { FxLayer } from './layers/fx';
 import { MapLayer } from './layers/map-layer';
 import { OverlayLayer } from './layers/overlay';
@@ -15,7 +16,7 @@ import { StructuresLayer } from './layers/structures';
 import { UnitsLayer } from './layers/units';
 import { ZonesLayer } from './layers/zones';
 import { palette } from './palette';
-import { overlayMode, selectedStructure } from './view-state';
+import { mapBake, overlayMode, repurposeTarget, selectedStructure } from './view-state';
 
 export const createRenderer: CreateRenderer = async (host, sim) => {
   const app = new Application();
@@ -40,6 +41,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   const projectiles = new ProjectilesLayer();
   const fx = new FxLayer(app.renderer);
   const preview = new PreviewLayer();
+  const economy = new EconomyLayer();
   world.addChild(
     mapLayer.view,
     corpses.view,
@@ -53,6 +55,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     projectiles.view,
     fx.view,
     selection.view,
+    economy.view,
     preview.view,
     overlay.view,
   );
@@ -74,8 +77,12 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   const unsubZones = sim.onZones((z) => zones.setZones(z));
   const unsubStructures = sim.onStructures((list) => structures.setStructures(list));
   const unsubMap = sim.onMap((m) => {
+    camera.refit();
     mapLayer.setMap(m);
     overlay.setMap(m);
+    economy.setMap(m);
+    mapBake.map = m;
+    mapBake.progress = 0;
   });
 
   app.renderer.on('resize', () => camera.apply());
@@ -85,6 +92,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     meter.tick(now);
     camera.update(ticker.deltaMS);
     mapLayer.update();
+    mapBake.progress = mapLayer.progress;
     agents.update(sim.curr, sim.alpha(now), camera.zoom, now);
     corpses.update(sim.curr?.corpses ?? null, camera.zoom);
     zones.update(camera.zoom);
@@ -93,6 +101,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     units.update(sim.units, alpha, camera.zoom, now);
     projectiles.update(alpha, camera.zoom);
     if (fx.update(ticker.deltaMS, camera.zoom, now)) camera.apply();
+    economy.update(sim.mission, repurposeTarget.peek(), camera.zoom);
     preview.update(sim, camera.zoom, now);
     selection.update(sim.curr?.units ?? null, camera.zoom);
     overlay.update(overlayMode.peek(), sim.debugField, camera.zoom);

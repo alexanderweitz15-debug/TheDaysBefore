@@ -94,3 +94,8 @@ export const CORPSE_LIMIT = { min: 0, max: 20_000, step: 500, default: 5_000 } a
 
 /** Agents farther than this outside the camera rectangle get no sprite (meters). */
 export const AGENT_CULL_MARGIN_M = 20;
+
+/** Initial camera fit: screen px kept free for the top bar and the command bar, and the share of the area used. */
+export const FIT_INSET_TOP_PX = 90;
+export const FIT_INSET_BOTTOM_PX = 130;
+export const FIT_MARGIN = 0.95;

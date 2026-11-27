@@ -24,7 +24,7 @@ export interface MenuEntry {
 }
 
 /** Highest milestone implemented so far. Raise when a milestone ships. */
-export const BUILT_MILESTONE = 0;
+export const BUILT_MILESTONE = 4;
 
 const entry = (id: MenuEntryId, unlock: number): MenuEntry => ({
   id,
@@ -36,7 +36,7 @@ const entry = (id: MenuEntryId, unlock: number): MenuEntry => ({
 export const MENU_ENTRIES: readonly MenuEntry[] = [
   entry('continue', 5),
   entry('campaign', 11),
-  entry('scenario', 5),
+  entry('scenario', 4),
   entry('skirmish', 5),
   entry('endless', 11),
   entry('challenges', 11),
