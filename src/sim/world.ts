@@ -5,6 +5,7 @@ import { createHash, type HashState, hashU32, hashView } from '../core/hash';
 import { TICK_RATE } from '../core/loop';
 import type { StructureView, UnitView } from '../core/types/combat';
 import { CELL_SIZE_M, type CityMapData } from '../core/types/map';
+import type { MissionView } from '../core/types/mission';
 import type {
   CreateWorld,
   DebugField,
@@ -32,6 +33,9 @@ import { fireUnits } from './combat/fire';
 import { advanceUnitInfection } from './combat/unit-damage';
 import { applyUnitCommand, moveUnits } from './combat/unit-move';
 import { placeUnit } from './combat/units';
+import { missionTick, setupMission } from './economy/mission';
+import { applyMissionCommand, missionView } from './economy/mission-view';
+import { setupEconomy } from './economy/production';
 import type { FlowField } from './horde/flow-field';
 import { ZombieGoals } from './horde/goals';
 import type { AgentPool } from './horde/pool';
@@ -98,10 +102,19 @@ export class CityWorld implements SimWorld {
       dwellMaxTicks: CIVILIAN_MOVEMENT.dwellMaxS * TICK_RATE,
       retryTicks: CIVILIAN_MOVEMENT.retryS * TICK_RATE,
     };
-    placeResidents(s, CITY_SIZES[options.size].population, this.routineParams.dwellMaxTicks);
+    const sc = options.scenario;
+    placeResidents(
+      s,
+      sc?.population ?? CITY_SIZES[options.size].population,
+      this.routineParams.dwellMaxTicks,
+    );
     // The first field is ready before tick 0.
     s.goals.evaluate(s, 0);
     s.flow.advance(Number.POSITIVE_INFINITY);
+    if (sc) {
+      setupEconomy(s, sc.startResources ?? {});
+      setupMission(s, sc);
+    }
   }
 
   get zombies(): AgentPool {
@@ -165,6 +178,10 @@ export class CityWorld implements SimWorld {
     this.s.fx.drain(out);
   }
 
+  mission(): MissionView {
+    return missionView(this.s);
+  }
+
   applyCommand(cmd: Command): void {
     const s = this.s;
     s.tick = Math.max(s.tick, cmd.tick);
@@ -197,7 +214,9 @@ export class CityWorld implements SimWorld {
         s.zones.remove(s, cmd.payload.id);
         return;
       case 'PlaceUnit':
-        placeUnit(s, cmd.payload.unitType, cmd.payload.x, cmd.payload.y);
+        // Militia only from conscripts (economy/population.ts).
+        if (!UNITS[cmd.payload.unitType]?.notPlaceable)
+          placeUnit(s, cmd.payload.unitType, cmd.payload.x, cmd.payload.y);
         return;
       case 'PlaceStructure':
         s.structures.place(s, cmd.payload.kind, cmd.payload.points, cmd.payload.rotation);
@@ -209,7 +228,7 @@ export class CityWorld implements SimWorld {
         detonate(s, cmd.payload.id);
         return;
       default:
-        applyUnitCommand(s, cmd);
+        if (!applyMissionCommand(s, cmd)) applyUnitCommand(s, cmd);
         return;
     }
   }
@@ -217,6 +236,7 @@ export class CityWorld implements SimWorld {
   step(tick: number): void {
     const s = this.s;
     s.tick = tick;
+    missionTick(s, tick);
     perceive(s, tick);
     s.noise.decay(tick);
     if (!s.flow.busy && tick % ENGINE.goalEvalInterval === 0) s.goals.evaluate(s, tick);
@@ -308,6 +328,11 @@ export class CityWorld implements SimWorld {
     const chw = s.civilians.highWater;
     for (const a of [r.home, r.work, r.market, r.dest, r.timer]) hashView(h, a.subarray(0, chw));
     hashU32(h, r.progress());
+    // Missions only: free mode keeps the M3 hash.
+    if (s.eco.active || s.mission.active) {
+      for (const a of [...s.eco.hashArrays(), ...s.mission.hashArrays()]) hashView(h, a);
+      for (const v of [...s.eco.hashValues(), ...s.mission.hashValues()]) hashU32(h, v);
+    }
   }
 
   writeZombies(out: AgentSection): void {

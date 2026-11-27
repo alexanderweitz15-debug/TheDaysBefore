@@ -144,8 +144,8 @@ export class Structures {
   private placeSegment(s: SimState, k: number, ax: number, ay: number, bx: number, by: number): number {
     const spec = SPEC[k] as (typeof SPEC)[number];
     const lenM = Math.max(s.cellM, Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)));
-    const cost = Math.ceil(spec.cost * lenM);
-    if (s.counters.budget < cost) return -1;
+    const cost = s.eco.quote(k, spec.cost, lenM);
+    if (!s.eco.canPayQuote(s.counters.budget)) return -1;
     const m = rasterLine(s, ax, ay, bx, by, this.tmp);
     let free = 0;
     for (let q = 0; q < m; q++) {
@@ -155,7 +155,7 @@ export class Structures {
     if (free === 0) return 0;
     const i = this.alloc();
     if (i < 0) return -1;
-    s.counters.budget -= cost;
+    s.counters.budget -= s.eco.payQuote();
     this.kind[i] = k;
     this.setShape(i, ax, ay, bx, by, 0);
     this.lengthM[i] = lenM;
@@ -170,7 +170,8 @@ export class Structures {
 
   private placePoint(s: SimState, k: number, x: number, y: number, rot: number): boolean {
     const spec = SPEC[k] as (typeof SPEC)[number];
-    if (s.counters.budget < spec.cost) return false;
+    const cost = s.eco.quote(k, spec.cost, 1);
+    if (!s.eco.canPayQuote(s.counters.budget)) return false;
     const c0 = s.cellOf(x, y);
     if (!s.terrainWalk[c0]) return false;
     let m = 0;
@@ -184,11 +185,11 @@ export class Structures {
     if (m > MAX_CELLS) return false;
     const i = this.alloc();
     if (i < 0) return false;
-    s.counters.budget -= spec.cost;
+    s.counters.budget -= s.eco.payQuote();
     this.kind[i] = k;
     this.setShape(i, x, y, x, y, rot);
     this.lengthM[i] = k === SK.gate ? spec.sizeM : 2 * spec.sizeM;
-    this.cost[i] = spec.cost;
+    this.cost[i] = cost;
     this.maxHp[i] = spec.hp;
     this.hp[i] = spec.hp;
     this.buildS[i] = spec.buildS;

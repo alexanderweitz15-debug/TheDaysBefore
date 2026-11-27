@@ -4,7 +4,7 @@ import { UNIT_BEHAVIOUR } from '../../data/units/present';
 import { spawnZombie, ZT_COLOSSUS } from '../horde/zombie-traits';
 import type { SimState } from '../state';
 import { FX } from './fx';
-import { PATH_NONE, UT_HP } from './units';
+import { PATH_NONE, UT_HP, UT_MORALE_LOSS } from './units';
 
 /** Rank from kills (GDD 9: three ranks). */
 export function rankOf(kills: number): number {
@@ -21,11 +21,12 @@ export function creditKill(s: SimState, u: number): void {
   U.rank[u] = rankOf(k);
 }
 
-/** Morale loss scaled down by rank (GDD 9: +10 % morale per rank). */
+/** Morale loss scaled down by rank (GDD 9: +10 % morale per rank), up by the type (militia morale-sensitive). */
 export function loseMorale(s: SimState, u: number, amount: number): void {
   const U = s.units;
   const f = 1 - UNIT_BEHAVIOUR.rankBonus * (U.rank[u] as number);
-  U.morale[u] = Math.max(0, (U.morale[u] as number) - amount * f);
+  const m = UT_MORALE_LOSS[U.pool.kind[u] as number] as number;
+  U.morale[u] = Math.max(0, (U.morale[u] as number) - amount * f * m);
 }
 
 /**

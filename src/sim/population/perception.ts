@@ -69,6 +69,7 @@ export function perceive(s: SimState, tick: number): void {
   const sight = CIVILIAN_ALERT.sightRangeM;
   const loud = CIVILIAN_ALERT.noiseThreshold;
   const P = CIVILIAN_PANIC;
+  const riseFactor = s.eco.panicRiseFactor();
   const hw = c.highWater;
   for (let i = (INTERVAL - (tick % INTERVAL)) % INTERVAL; i < hw; i += INTERVAL) {
     if (!alive[i]) continue;
@@ -97,7 +98,8 @@ export function perceive(s: SimState, tick: number): void {
       }
     }
     // Unaware routine civilians do not recognize zombies as a threat; only loud noise frightens them.
-    const rise = (st === CS_ROUTINE ? 0 : P.perZombiePerS * seen) + (heard ? P.perNoisePerS * level : 0);
+    const rise =
+      ((st === CS_ROUTINE ? 0 : P.perZombiePerS * seen) + (heard ? P.perNoisePerS * level : 0)) * riseFactor;
     const p = Math.min(1, Math.max(0, (panic[i] as number) + (rise > 0 ? rise : -P.decayPerS) * DT_S));
     panic[i] = p;
 

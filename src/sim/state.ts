@@ -10,6 +10,8 @@ import { Projectiles } from './combat/projectiles';
 import { CombatScratch } from './combat/targeting';
 import { PathPlanner } from './combat/unit-path';
 import { Units } from './combat/units';
+import { Economy } from './economy/economy';
+import { Mission } from './economy/mission';
 import { FlowField } from './horde/flow-field';
 import type { ZombieGoals } from './horde/goals';
 import { AgentPool } from './horde/pool';
@@ -88,6 +90,9 @@ export class SimState {
   readonly projectiles = new Projectiles(UNIT_ENGINE.projectileCapacity);
   readonly fx = new FxBuffer(UNIT_ENGINE.fxCapacity);
   readonly structures = new Structures();
+  /** Economy and population (missions only; inactive in free mode). */
+  readonly eco: Economy;
+  readonly mission = new Mission();
   readonly combat: CombatScratch;
   /** Zombie flow goals; set by the world after setup. */
   goals!: ZombieGoals;
@@ -130,6 +135,7 @@ export class SimState {
     this.unitHash = new SpatialHash(this.sizeM, this.noise.cellM, UNIT_ENGINE.capacity);
     this.planner = new PathPlanner(n, UNIT_ENGINE.capacity);
     this.combat = new CombatScratch(this);
+    this.eco = new Economy(map.buildings.count);
     this.placed = new Int32Array(Math.max(AGENT_CAPACITY.zombies, AGENT_CAPACITY.civilians));
   }
 

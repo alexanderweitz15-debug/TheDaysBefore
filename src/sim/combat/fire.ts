@@ -152,9 +152,12 @@ function perSecond(s: SimState, u: number): void {
   if (
     maxAmmo > 0 &&
     (U.ammo[u] as number) < maxAmmo &&
-    s.structures.nearestDone(s, 'depot', x, y, s.structures.depotRadius) >= 0
-  )
-    U.ammo[u] = Math.min(maxAmmo, (U.ammo[u] as number) + maxAmmo * ECONOMY_M3.depotResupplyPerS);
+    (s.structures.nearestDone(s, 'depot', x, y, s.structures.depotRadius) >= 0 ||
+      s.eco.nearHq(x, y, s.structures.depotRadius))
+  ) {
+    const ammo = U.ammo[u] as number;
+    U.ammo[u] = ammo + s.eco.drawAmmo(Math.min(maxAmmo - ammo, maxAmmo * ECONOMY_M3.depotResupplyPerS));
+  }
   // Medics heal nearby squads (not beyond their living members).
   if (UT_HEAL[t]) {
     const hr = UNIT_BEHAVIOUR.healRadiusM;

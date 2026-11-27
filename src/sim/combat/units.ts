@@ -39,6 +39,7 @@ export const UT_SUPPRESSION = table((s) => s.suppression);
 export const UT_SPECIALS = table((s) => (s.prefersSpecials ? 1 : 0));
 export const UT_BUILD = table((s) => (s.canBuild ? 1 : 0));
 export const UT_HEAL = table((s) => (s.canHeal ? 1 : 0));
+export const UT_MORALE_LOSS = table((s) => s.moraleLossFactor);
 export const UT_INDIRECT = table((s) => (s.areaRadiusM > 0 && s.minRangeM > 0 ? 1 : 0));
 export const UT_DAMAGE_TYPE: readonly string[] = specs.map((s) => s.damageType);
 export const UT_SNIPER = UNIT_TYPE_ORDER.indexOf('sniperTeam');
@@ -251,20 +252,21 @@ export class Units {
 
 /**
  * PlaceUnit: buys a squad at (x, y) (cost from data). Refused off the map or on a cell that is not walkable
- * (buildings, water, blocking structures). Returns the slot or -1.
+ * (buildings, water, blocking structures). `price` overrides the cost (militia). Returns the slot or -1.
  */
-export function placeUnit(s: SimState, type: UnitTypeId, x: number, y: number): number {
+export function placeUnit(s: SimState, type: UnitTypeId, x: number, y: number, price?: number): number {
   const t = UNIT_TYPE_ORDER.indexOf(type);
   if (t < 0 || !Number.isFinite(x) || !Number.isFinite(y) || !s.inMap(x, y)) return -1;
   const spec = UNITS[type];
-  if (s.counters.budget < spec.cost) return -1;
+  const cost = price ?? spec.cost;
+  if (s.counters.budget < cost) return -1;
   const c = s.cellOf(x, y);
   if (!s.walkable[c]) return -1;
   const U = s.units;
   const p = U.pool;
   const u = p.alloc();
   if (u < 0) return -1;
-  s.counters.budget -= spec.cost;
+  s.counters.budget -= cost;
   const px = Math.fround(x);
   const py = Math.fround(y);
   p.posX[u] = px;
@@ -273,7 +275,8 @@ export function placeUnit(s: SimState, type: UnitTypeId, x: number, y: number): 
   p.cell[u] = c;
   p.hp[u] = spec.size * spec.hpPerMember;
   U.members[u] = spec.size;
-  U.ammo[u] = spec.ammo;
+  // Missions: the squad's ammo comes from the global stock (free mode: full).
+  U.ammo[u] = s.eco.drawAmmo(spec.ammo);
   U.stance[u] = ST_HOLD;
   U.fireMode[u] = FM_FREE;
   U.morale[u] = 1;

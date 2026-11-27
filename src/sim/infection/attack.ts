@@ -87,9 +87,7 @@ export function hitCivilian(s: SimState, j: number, damage: number, trapped = fa
   if (!trapped) s.ct.panic[j] = 1;
   s.noise.emit(c.posX[j] as number, c.posY[j] as number, NOISE.attackNoise, NOISE.attackRadiusM);
   if ((s.ct.turnTick[j] as number) < 0 && s.rng.nextFloat() < s.outbreak.infectChance(s.tick)) {
-    s.ct.turnTick[j] = s.tick + s.outbreak.incubationTicks(s.rng);
-    s.counters.incubating++;
-    s.markInfection(c.cell[j] as number, INFECTION_FIELD.bite);
+    infectCivilian(s, j);
     return true;
   }
   const hp = (c.hp[j] as number) - damage;
@@ -97,6 +95,13 @@ export function hitCivilian(s: SimState, j: number, damage: number, trapped = fa
   if (hp > 0) return false;
   killCivilian(s, j);
   return true;
+}
+
+/** Healthy civilian j is infected now: incubation from the pathogen, infection field mark. */
+export function infectCivilian(s: SimState, j: number): void {
+  s.ct.turnTick[j] = s.tick + s.outbreak.incubationTicks(s.rng);
+  s.counters.incubating++;
+  s.markInfection(s.civilians.cell[j] as number, INFECTION_FIELD.bite);
 }
 
 /**

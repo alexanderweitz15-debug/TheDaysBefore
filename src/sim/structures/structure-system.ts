@@ -9,6 +9,7 @@ import { ARMOR_PENETRATION } from '../../data/units/present';
 import { explode } from '../combat/explosion';
 import { FX } from '../combat/fx';
 import { coverAt, UT_BUILD } from '../combat/units';
+import { buildRate } from '../economy/mission';
 import type { AgentPool } from '../horde/pool';
 import type { SimState } from '../state';
 import { SK, SS_BUILDING, SS_DESTROYED, SS_DONE } from './kinds';
@@ -79,7 +80,8 @@ function build(s: SimState, tick: number): void {
     const strength = U.strength(u);
     if (best >= 0) {
       S.workedAt[best] = tick;
-      S.progress[best] = (S.progress[best] as number) + (DT * strength) / (S.buildS[best] as number);
+      S.progress[best] =
+        (S.progress[best] as number) + (DT * strength * buildRate(s, best)) / (S.buildS[best] as number);
       if ((S.progress[best] as number) >= 1) finishStructure(s, best, tick);
     } else if (repair >= 0) {
       S.hp[repair] = Math.min(
@@ -94,7 +96,8 @@ function build(s: SimState, tick: number): void {
     if (!S.alive[i] || S.state[i] !== SS_BUILDING || S.workedAt[i] === tick) continue;
     slots--;
     S.progress[i] =
-      (S.progress[i] as number) + DT / ((S.buildS[i] as number) * STRUCTURE_RULES.slowBuildFactor);
+      (S.progress[i] as number) +
+      (DT * buildRate(s, i)) / ((S.buildS[i] as number) * STRUCTURE_RULES.slowBuildFactor);
     if ((S.progress[i] as number) >= 1) finishStructure(s, i, tick);
   }
 }
