@@ -4,6 +4,8 @@ import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { SimStats } from './messages';
 import type { MissionView, ScenarioDef } from './mission';
+import type { DebriefData } from './outcome';
+import type { ReplayData, SaveGame } from './save';
 import type { DebugField, DebugFieldKind } from './sim';
 import type { SnapshotView } from './snapshot';
 import type { ZoneView } from './zones';
@@ -36,6 +38,8 @@ export interface SimView {
   onStructures(cb: (structures: StructureView[]) => void): () => void;
   /** Mission state, null until the worker sent it (free mode sends it too). */
   readonly mission: MissionView | null;
+  readonly debrief: DebriefData | null;
+  onDebrief(cb: (d: DebriefData) => void): () => void;
 }
 
 export interface CommandSink {
@@ -45,6 +49,10 @@ export interface CommandSink {
 /** Starts a new mission or restarts; render and ui keep their subscriptions. */
 export interface SessionControl {
   restart(seed: number, size: CitySize, scenario?: ScenarioDef): void;
+  save(): Promise<Omit<SaveGame, 'meta'> & { tick: number }>;
+  load(save: SaveGame): void;
+  replay(): Promise<ReplayData>;
+  verifyReplay(replay: ReplayData): Promise<{ hash: string; tick: number }>;
 }
 
 export interface RendererHandle {

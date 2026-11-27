@@ -1,6 +1,7 @@
 // Mission phases, economy and population as seen by UI (GDD 6). Structured-cloned once per second.
 import type { EconomyBuildingKind, PathogenFamily, ResourceId } from '../commands';
 import type { CitySize } from './map';
+import type { MissionOutcome, ObjectiveView, ScoreView } from './outcome';
 
 export type MissionPhase = 'farm' | 'outbreak' | 'defense' | 'ended';
 
@@ -66,6 +67,10 @@ export interface MissionView {
   moraleFactors: MoraleFactor[];
   activeDecrees: string[];
   warnings: WarningSignView[];
+  objectives: ObjectiveView[];
+  /** Live score (GDD 10), final once outcome is set. */
+  score: ScoreView;
+  outcome: MissionOutcome | null;
 }
 
 /** Scenario file (GDD 6 Szenario-Parameter), validated with zod in src/data/scenarios. */
@@ -87,4 +92,13 @@ export interface ScenarioDef {
   population?: number;
   difficulty: 'easy' | 'normal' | 'hard' | 'nightmare';
   victory: { kinds: ('eradication' | 'evacuation' | 'hold' | 'containment')[]; all: boolean };
+  /** Hold victory: tick until which the core must hold; evacuation share (default 0.6). */
+  holdUntilS?: number;
+  evacuationShare?: number;
+  /** Medal thresholds (GDD 10). */
+  medals?: { bronze: number; silver: number; gold: number };
+  /** Tutorial lessons 1 and 2 (GDD 15): defeat conditions are ignored, only Surrender ends the mission. */
+  unlosable?: boolean;
+  /** Challenges only (GDD 10 Niederlage). */
+  timeLimitS?: number;
 }

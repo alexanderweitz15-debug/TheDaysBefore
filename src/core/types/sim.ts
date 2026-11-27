@@ -4,6 +4,7 @@ import type { HashState } from '../hash';
 import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { MissionView, ScenarioDef } from './mission';
+import type { DebriefData } from './outcome';
 import type { AgentSection } from './snapshot';
 import type { ZoneView } from './zones';
 
@@ -39,6 +40,14 @@ export interface SimWorld {
   structures(): StructureView[];
   /** Phase, economy, population, warnings; polled once per second by the worker. */
   mission(): MissionView;
+  /** Full debrief after the mission ended (null before). May allocate. */
+  debrief(): DebriefData | null;
+  /**
+   * Versioned full state for save games; flow/safety fields may be recomputed on load.
+   * Contract: bytes 0..3 = completed tick count (Uint32 little endian), bytes 4..7 = format version.
+   * restore(serialize()) must continue bit-identically (same hash after the same further commands).
+   */
+  serialize(): Uint8Array;
   /** Projectiles in flight: kind = projectile type index. */
   readonly projectileCount: number;
   writeProjectiles(out: AgentSection): void;
@@ -84,3 +93,5 @@ export interface WorldOptions {
 }
 
 export type CreateWorld = (seed: number, options: WorldOptions) => SimWorld;
+/** Restores a world from serialize() output; throws with a clear message on version mismatch. */
+export type RestoreWorld = (seed: number, options: WorldOptions, state: Uint8Array) => SimWorld;

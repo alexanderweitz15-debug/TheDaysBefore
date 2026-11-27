@@ -108,6 +108,8 @@ export type AssignWorkersCommand = CommandBase<
 export type SetDecreeCommand = CommandBase<'SetDecree', { decree: string; active: boolean }>;
 /** Investigates a warning sign (GDD 6): costs and time from data, rewards time/codex/vaccine progress. */
 export type InvestigateWarningCommand = CommandBase<'InvestigateWarning', { warningId: number }>;
+/** Gives up the mission (pause menu, GDD 14). */
+export type SurrenderCommand = CommandBase<'Surrender', Record<string, never>>;
 /** Classic start: triggers the outbreak on demand (GDD 6 Option "Klassischer Start"). */
 export type TriggerOutbreakCommand = CommandBase<'TriggerOutbreak', Record<string, never>>;
 
@@ -133,7 +135,8 @@ export type Command =
   | AssignWorkersCommand
   | SetDecreeCommand
   | InvestigateWarningCommand
-  | TriggerOutbreakCommand;
+  | TriggerOutbreakCommand
+  | SurrenderCommand;
 export type CommandType = Command['type'];
 /** What UI and bots submit: the host assigns the tick. */
 export type CommandInput = Omit<Command, 'tick'>;

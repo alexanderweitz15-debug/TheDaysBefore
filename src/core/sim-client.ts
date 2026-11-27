@@ -6,6 +6,8 @@ import type { StructureView, UnitView } from './types/combat';
 import type { CityMapData, CitySize } from './types/map';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
 import type { MissionView, ScenarioDef } from './types/mission';
+import type { DebriefData } from './types/outcome';
+import type { ReplayData, SaveGame } from './types/save';
 import type { DebugField, DebugFieldKind } from './types/sim';
 import { readSnapshot, type SnapshotView } from './types/snapshot';
 import type { ZoneView } from './types/zones';
@@ -18,6 +20,10 @@ export class SimClient implements SimView, CommandSink {
   zones: ZoneView[] = [];
   units: UnitView[] = [];
   mission: MissionView | null = null;
+  debrief: DebriefData | null = null;
+  private debriefListeners: ((d: DebriefData) => void)[] = [];
+  private nextRequestId = 1;
+  private pending = new Map<number, (value: unknown) => void>();
   structures: StructureView[] = [];
   private structureListeners: ((s: StructureView[]) => void)[] = [];
   private zoneListeners: ((z: ZoneView[]) => void)[] = [];
@@ -72,7 +78,63 @@ export class SimClient implements SimView, CommandSink {
     this.units = [];
     this.structures = [];
     this.mission = null;
+    this.debrief = null;
     this.worker = this.spawn(seed, size, scenario);
+  }
+
+  /** Requests the full state; the UI adds meta (label, savedAt) and stores it. */
+  save(): Promise<Omit<SaveGame, 'meta'> & { tick: number }> {
+    return this.request('save', {}) as Promise<Omit<SaveGame, 'meta'> & { tick: number }>;
+  }
+
+  /** Replaces the running world with a saved one (same worker, listeners stay). */
+  load(save: SaveGame): void {
+    this.resetState();
+    this.send({ type: 'load', save });
+  }
+
+  replay(): Promise<ReplayData> {
+    return this.request('replay', {}) as Promise<ReplayData>;
+  }
+
+  /** Re-simulates a replay in the worker and resolves with the end hash. */
+  verifyReplay(replay: ReplayData): Promise<{ hash: string; tick: number }> {
+    return this.request('verifyReplay', { replay }) as Promise<{ hash: string; tick: number }>;
+  }
+
+  onDebrief(cb: (d: DebriefData) => void): () => void {
+    this.debriefListeners.push(cb);
+    if (this.debrief) cb(this.debrief);
+    return () => {
+      this.debriefListeners = this.debriefListeners.filter((l) => l !== cb);
+    };
+  }
+
+  private request(type: 'save' | 'replay' | 'verifyReplay', extra: object): Promise<unknown> {
+    const requestId = this.nextRequestId++;
+    return new Promise((resolve) => {
+      this.pending.set(requestId, resolve);
+      this.send({ type, requestId, ...extra } as ToWorker);
+    });
+  }
+
+  private resolve(requestId: number, value: unknown): void {
+    const done = this.pending.get(requestId);
+    this.pending.delete(requestId);
+    done?.(value);
+  }
+
+  private resetState(): void {
+    this.prev = null;
+    this.curr = null;
+    this.prevBuffer = null;
+    this.map = null;
+    this.debugField = null;
+    this.zones = [];
+    this.units = [];
+    this.structures = [];
+    this.mission = null;
+    this.debrief = null;
   }
 
   private spawn(seed: number, size: CitySize, scenario?: ScenarioDef): Worker {
@@ -152,6 +214,19 @@ export class SimClient implements SimView, CommandSink {
         return;
       case 'mission':
         this.mission = msg.mission;
+        return;
+      case 'debrief':
+        this.debrief = msg.debrief;
+        for (const l of this.debriefListeners) l(msg.debrief);
+        return;
+      case 'save':
+        this.resolve(msg.requestId, msg.save);
+        return;
+      case 'replay':
+        this.resolve(msg.requestId, msg.replay);
+        return;
+      case 'verifyReplay':
+        this.resolve(msg.requestId, { hash: msg.hash, tick: msg.tick });
         return;
       case 'units':
         this.units = msg.units;
