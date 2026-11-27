@@ -49,6 +49,8 @@ let unitsSentAt = 0;
 let unitsSentCount = -1;
 let missionSentAt = -1000;
 let debriefSent = false;
+let sentOrdersVersion = -1;
+let ordersSentAt = 0;
 let pumping = false;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
@@ -97,6 +99,11 @@ function sendSnapshot(h: SimHost): void {
     sentZonesVersion = w.zonesVersion;
     zonesSentAt = h.tick;
     post({ type: 'zones', zones: w.zones() });
+  }
+  if (w.ordersVersion !== sentOrdersVersion || h.tick - ordersSentAt >= ZONES_RESEND_TICKS) {
+    sentOrdersVersion = w.ordersVersion;
+    ordersSentAt = h.tick;
+    post({ type: 'orders', ...w.orders() });
   }
   const structuresDue = h.tick - structuresSentAt >= ZONES_RESEND_TICKS;
   if (w.structuresVersion !== sentStructuresVersion || structuresDue) {
@@ -171,6 +178,7 @@ function startRunning(h: SimHost): void {
   debriefSent = false;
   sentZonesVersion = -1;
   sentStructuresVersion = -1;
+  sentOrdersVersion = -1;
   lastTime = performance.now();
   windowStart = lastTime;
   sendSnapshot(h);

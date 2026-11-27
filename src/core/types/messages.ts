@@ -3,6 +3,7 @@ import type { Command, CommandInput } from '../commands';
 import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { MissionView, ScenarioDef } from './mission';
+import type { GarrisonView, OrderView, ReserveView } from './orders';
 import type { DebriefData } from './outcome';
 import type { ReplayData, SaveGame } from './save';
 import type { DebugField, DebugFieldKind, SimCounters } from './sim';
@@ -49,6 +50,7 @@ export type FromWorker =
   | { type: 'structures'; structures: StructureView[] }
   | { type: 'mission'; mission: MissionView }
   | { type: 'debrief'; debrief: DebriefData }
+  | { type: 'orders'; orders: OrderView[]; reserve: ReserveView; garrisons: GarrisonView[] }
   | { type: 'save'; requestId: number; save: Omit<SaveGame, 'meta'> & { tick: number } }
   | { type: 'replay'; requestId: number; replay: ReplayData }
   | { type: 'verifyReplay'; requestId: number; hash: string; tick: number }

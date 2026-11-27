@@ -6,6 +6,7 @@ import type { StructureView, UnitView } from './types/combat';
 import type { CityMapData, CitySize } from './types/map';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
 import type { MissionView, ScenarioDef } from './types/mission';
+import type { GarrisonView, OrderView, ReserveView } from './types/orders';
 import type { DebriefData } from './types/outcome';
 import type { ReplayData, SaveGame } from './types/save';
 import type { DebugField, DebugFieldKind } from './types/sim';
@@ -21,6 +22,9 @@ export class SimClient implements SimView, CommandSink {
   units: UnitView[] = [];
   mission: MissionView | null = null;
   debrief: DebriefData | null = null;
+  orders: OrderView[] = [];
+  reserve: ReserveView = { idle: {}, returning: 0 };
+  garrisons: GarrisonView[] = [];
   private debriefListeners: ((d: DebriefData) => void)[] = [];
   private nextRequestId = 1;
   private pending = new Map<number, (value: unknown) => void>();
@@ -135,6 +139,9 @@ export class SimClient implements SimView, CommandSink {
     this.structures = [];
     this.mission = null;
     this.debrief = null;
+    this.orders = [];
+    this.reserve = { idle: {}, returning: 0 };
+    this.garrisons = [];
   }
 
   private spawn(seed: number, size: CitySize, scenario?: ScenarioDef): Worker {
@@ -214,6 +221,11 @@ export class SimClient implements SimView, CommandSink {
         return;
       case 'mission':
         this.mission = msg.mission;
+        return;
+      case 'orders':
+        this.orders = msg.orders;
+        this.reserve = msg.reserve;
+        this.garrisons = msg.garrisons;
         return;
       case 'debrief':
         this.debrief = msg.debrief;

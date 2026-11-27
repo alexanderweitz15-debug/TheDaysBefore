@@ -4,6 +4,7 @@ import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { SimStats } from './messages';
 import type { MissionView, ScenarioDef } from './mission';
+import type { GarrisonView, OrderView, ReserveView } from './orders';
 import type { DebriefData } from './outcome';
 import type { ReplayData, SaveGame } from './save';
 import type { DebugField, DebugFieldKind } from './sim';
@@ -39,6 +40,10 @@ export interface SimView {
   /** Mission state, null until the worker sent it (free mode sends it too). */
   readonly mission: MissionView | null;
   readonly debrief: DebriefData | null;
+  /** Order system state, refreshed on change and once per second. */
+  readonly orders: OrderView[];
+  readonly reserve: ReserveView;
+  readonly garrisons: GarrisonView[];
   onDebrief(cb: (d: DebriefData) => void): () => void;
 }
 

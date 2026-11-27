@@ -113,6 +113,31 @@ export type SurrenderCommand = CommandBase<'Surrender', Record<string, never>>;
 /** Classic start: triggers the outbreak on demand (GDD 6 Option "Klassischer Start"). */
 export type TriggerOutbreakCommand = CommandBase<'TriggerOutbreak', Record<string, never>>;
 
+/** Squads requested per unit type for an order. */
+export type SquadRequest = Partial<Record<UnitTypeId, number>>;
+/** Order: defend a line (polyline, meters). Squads spread along it and hold. */
+export type DefendLineCommand = CommandBase<
+  'DefendLine',
+  { points: number[]; squads: SquadRequest; stance: Stance }
+>;
+/** Order: hold an area; squads occupy suitable buildings inside and cover open ground. */
+export type HoldZoneCommand = CommandBase<
+  'HoldZone',
+  { x0: number; y0: number; x1: number; y1: number; squads: SquadRequest; stance: Stance }
+>;
+/** Order: occupy a city building (map building index); cover and sight bonus by floors (GDD 9). */
+export type OccupyBuildingCommand = CommandBase<
+  'OccupyBuilding',
+  { buildingId: number; squads: SquadRequest; stance: Stance }
+>;
+/** Changes requested strength or stance of an existing order. */
+export type UpdateOrderCommand = CommandBase<
+  'UpdateOrder',
+  { orderId: number; squads: SquadRequest; stance: Stance }
+>;
+/** Cancels an order; assigned squads return to the reserve. */
+export type CancelOrderCommand = CommandBase<'CancelOrder', { orderId: number }>;
+
 export type PathogenFamily = 'viral' | 'bacterial' | 'fungal' | 'parasitic' | 'chemical' | 'nanotech';
 
 export type Command =
@@ -136,7 +161,12 @@ export type Command =
   | SetDecreeCommand
   | InvestigateWarningCommand
   | TriggerOutbreakCommand
-  | SurrenderCommand;
+  | SurrenderCommand
+  | DefendLineCommand
+  | HoldZoneCommand
+  | OccupyBuildingCommand
+  | UpdateOrderCommand
+  | CancelOrderCommand;
 export type CommandType = Command['type'];
 /** What UI and bots submit: the host assigns the tick. */
 export type CommandInput = Omit<Command, 'tick'>;
