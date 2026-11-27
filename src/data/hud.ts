@@ -7,17 +7,8 @@ export const HUD_SPEEDS: readonly GameSpeed[] = [0, 0.5, 1, 2, 4];
 export const HUD_REFRESH_MS = 250;
 /** Click on a unit or structure: pick radius in screen px. */
 export const PICK_RADIUS_PX = 14;
-/** Pointer movement below this is a click, above it a drag (box select / facing), px. */
-export const DRAG_THRESHOLD_PX = 5;
-/** Two clicks within this time and distance are a double click, ms and px. */
-export const DOUBLE_CLICK_MS = 350;
-/** Pressing a group digit twice within this time centers the camera, ms. */
-export const GROUP_DOUBLE_MS = 400;
 /** Armed confirmation (demolish) expires after this time, ms. */
 export const CONFIRM_MS = 3000;
-/** Selection ring around selected units: radius in px (screen) and line width in px. */
-export const SELECT_RING_PX = 9;
-export const SELECT_RING_LINE_PX = 2;
 /** Minimap: density grid edge in cells, redraw interval in ms. */
 export const MINIMAP_DENSITY_CELLS = 64;
 export const MINIMAP_REFRESH_MS = 200;

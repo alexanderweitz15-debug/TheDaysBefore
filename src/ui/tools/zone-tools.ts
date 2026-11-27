@@ -18,12 +18,11 @@ import {
   cameraView,
   screenToWorld,
   selectedStructure,
-  selectedUnits,
   type ToolName,
   toolDraft,
 } from '../../render/view-state';
 import { keyOf, settings } from '../settings/store';
-import { menuVisible, pendingRemoval, settingsOpen, toolNotice } from '../ui-state';
+import { menuVisible, orderDraft, pendingRemoval, settingsOpen, toolNotice } from '../ui-state';
 
 const LOCAL_PLAYER = 0;
 const toolOf = (code: string): ToolName | undefined =>
@@ -44,7 +43,7 @@ export function undoRemoval(): void {
 }
 
 let noticeTimer = 0;
-function notify(key: MessageKey): void {
+export function notify(key: MessageKey): void {
   toolNotice.value = key;
   window.clearTimeout(noticeTimer);
   noticeTimer = window.setTimeout(() => (toolNotice.value = null), TOOL_NOTICE_MS);
@@ -65,6 +64,7 @@ export function cancelTool(): boolean {
   if (activeTool.value === 'none') return false;
   activeTool.value = 'none';
   buildArm.value = null;
+  orderDraft.value = null;
   resetDraft();
   return true;
 }
@@ -216,8 +216,8 @@ export function installZoneTools(sim: SimView, commands: CommandSink): () => voi
     if (!onCanvas(e)) return;
     e.preventDefault();
     if (cancelTool()) return;
-    // With units or a structure selected, right click is an order, not a removal.
-    if (selectedUnits.value.length > 0 || selectedStructure.value !== null) return;
+    // With a structure selected, right click does nothing (no removal by accident).
+    if (selectedStructure.value !== null) return;
     const p = screenToWorld(e.clientX, e.clientY);
     removeAt(p.x, p.y);
   };

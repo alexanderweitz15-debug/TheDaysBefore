@@ -3,7 +3,7 @@ import { effect } from '@preact/signals';
 import { render } from 'preact';
 import { useEffect, useMemo } from 'preact/hooks';
 import type { MountUi, UiDeps } from '../core/types/app';
-import { selectedStructure, selectedUnits } from '../render/view-state';
+import { selectedStructure } from '../render/view-state';
 import { installAudio } from './audio/audio';
 import { tapCommands } from './command-tap';
 import { installGameFlow } from './game-flow';
@@ -12,9 +12,10 @@ import { CommandBar } from './hud/command-bar';
 import { ContextPanel } from './hud/context-panel';
 import { DebugPanel } from './hud/debug-panel';
 import { Minimap } from './hud/minimap';
+import { OrderDialog } from './hud/order-dialog';
+import { OrderList } from './hud/order-list';
 import { LoadingHint, OverlayBadge } from './hud/overlay-status';
 import { PerfOverlay } from './hud/perf-overlay';
-import { SelectionBox } from './hud/selection-box';
 import { Situation } from './hud/situation';
 import { ToolHint } from './hud/status-hud';
 import { TopBar } from './hud/top-bar';
@@ -38,6 +39,7 @@ import './styles.css';
 import { installAttackTool } from './tools/attack-tool';
 import { installBuildTool } from './tools/build-tool';
 import { installGameKeys } from './tools/game-keys';
+import { installOrderTool } from './tools/order-tool';
 import { installSelectTool } from './tools/select-tool';
 import { cancelTool, installZoneTools } from './tools/zone-tools';
 import {
@@ -63,8 +65,7 @@ function App({ deps: rawDeps }: { deps: UiDeps }) {
       if (e.key !== 'Escape' || debriefOpen.value) return;
       // One place for Esc: active mode first, then panels, then the menu.
       if (cancelTool()) return;
-      if (selectedUnits.value.length > 0 || selectedStructure.value !== null) {
-        selectedUnits.value = [];
+      if (selectedStructure.value !== null) {
         selectedStructure.value = null;
         return;
       }
@@ -101,9 +102,10 @@ function App({ deps: rawDeps }: { deps: UiDeps }) {
   );
   useEffect(() => installEconomyKeys(), []);
   useEffect(() => installZoneTools(deps.sim, deps.commands), [deps.sim, deps.commands]);
-  useEffect(() => installSelectTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
+  useEffect(() => installSelectTool(deps.sim), [deps.sim]);
   useEffect(() => installBuildTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installAttackTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
+  useEffect(() => installOrderTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installGameKeys(deps.sim, deps.commands), [deps.sim, deps.commands]);
 
   // HUD only in the game: not behind briefing, loading screen or the free-mode main menu.
@@ -124,10 +126,11 @@ function App({ deps: rawDeps }: { deps: UiDeps }) {
         <>
           <TopBar sim={deps.sim} commands={deps.commands} />
           <ContextPanel sim={deps.sim} commands={deps.commands} />
-          <CommandBar sim={deps.sim} />
+          <CommandBar sim={deps.sim} commands={deps.commands} />
           <Situation sim={deps.sim} />
           <Minimap sim={deps.sim} />
-          <SelectionBox />
+          <OrderList sim={deps.sim} commands={deps.commands} />
+          <OrderDialog sim={deps.sim} />
           <ToolHint />
         </>
       )}

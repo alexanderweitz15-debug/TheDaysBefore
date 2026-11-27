@@ -8,7 +8,7 @@ export type Condition =
   | { kind: 'command'; command: CommandType; match?: Record<string, string | number | boolean> }
   | { kind: 'cameraMoved' }
   | { kind: 'zoomed' }
-  | { kind: 'selected'; min: number }
+  | { kind: 'tab'; tab: 'units' | 'orders' | 'defense' | 'civil' }
   | { kind: 'speed'; atLeast?: GameSpeed; exactly?: GameSpeed }
   | { kind: 'sheltered'; min: number }
   /** Phase reached or passed. */

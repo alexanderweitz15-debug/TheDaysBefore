@@ -1,7 +1,9 @@
 // Transient UI state shared between screens.
 import { signal } from '@preact/signals';
+import type { Stance, UnitTypeId } from '../core/commands';
 import type { ScenarioDef } from '../core/types/mission';
 import type { DebriefData } from '../core/types/outcome';
+import type { OrderTool } from '../data/hud-orders';
 import type { MessageKey } from '../data/i18n/de';
 
 export const menuVisible = signal(true);
@@ -16,7 +18,7 @@ export const pendingRemoval = signal<number | null>(null);
 /** Short tool message key (e.g. corridor point limit), or null. */
 export const toolNotice = signal<MessageKey | null>(null);
 /** Active tab of the command bar. */
-export const commandTab = signal<'units' | 'defense' | 'civil'>('units');
+export const commandTab = signal<'units' | 'orders' | 'defense' | 'civil'>('units');
 /** Structure id waiting for the second press to confirm demolition, or null. */
 export const demolishConfirm = signal<number | null>(null);
 export const outbreakArmed = signal(false);
@@ -52,3 +54,13 @@ export const activeLessonId = signal<string | null>(null);
 export const saveNotice = signal<string | null>(null);
 /** Debrief data of the finished mission. */
 export const debriefData = signal<DebriefData | null>(null);
+
+/** Order being prepared: strength per type and stance are chosen in the dialog, the shape is drawn on the map. */
+export interface OrderDraft {
+  kind: OrderTool;
+  squads: Partial<Record<UnitTypeId, number>>;
+  stance: Stance;
+}
+export const orderDraft = signal<OrderDraft | null>(null);
+/** Order list panel folded to its header. */
+export const ordersCollapsed = signal(false);

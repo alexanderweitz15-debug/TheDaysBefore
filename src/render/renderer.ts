@@ -11,9 +11,9 @@ import { CorpseLayer } from './layers/corpses';
 import { EconomyLayer } from './layers/economy-marks';
 import { FxLayer } from './layers/fx';
 import { MapLayer } from './layers/map-layer';
+import { OrdersLayer } from './layers/orders';
 import { OverlayLayer } from './layers/overlay';
 import { ProjectilesLayer } from './layers/projectiles';
-import { SelectionLayer } from './layers/selection';
 import { StructuresLayer } from './layers/structures';
 import { UnitsLayer } from './layers/units';
 import { ZonesLayer } from './layers/zones';
@@ -37,7 +37,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   const overlay = new OverlayLayer();
   const corpses = new CorpseLayer(app.renderer);
   const zones = new ZonesLayer();
-  const selection = new SelectionLayer();
+  const orders = new OrdersLayer();
   const structures = new StructuresLayer();
   const units = new UnitsLayer();
   const projectiles = new ProjectilesLayer();
@@ -56,7 +56,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     units.view,
     projectiles.view,
     fx.view,
-    selection.view,
+    orders.view,
     economy.view,
     preview.view,
     overlay.view,
@@ -93,6 +93,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     mapLayer.setMap(m);
     overlay.setMap(m);
     economy.setMap(m);
+    orders.setMap(m);
     mapBake.map = m;
     mapBake.progress = 0;
   });
@@ -115,7 +116,7 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
     if (fx.update(ticker.deltaMS, camera.zoom, now)) camera.apply();
     economy.update(sim.mission, repurposeTarget.peek(), camera.zoom);
     preview.update(sim, camera.zoom, now);
-    selection.update(sim.curr?.units ?? null, camera.zoom);
+    orders.update(sim.orders, sim.garrisons, camera.zoom);
     overlay.update(overlayMode.peek(), sim.debugField, camera.zoom);
   });
 

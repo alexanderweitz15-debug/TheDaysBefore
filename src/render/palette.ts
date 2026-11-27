@@ -123,6 +123,14 @@ export const palette = {
     bottleneck: sem(0xe5323c, 'exclamation'),
     pick: sem(0xffb347, 'double-line'),
   },
+  /** Orders on the map (own forces). Status is also coded by line style: waiting dotted, active solid, failing dashed, lost thin. */
+  orders: {
+    active: sem(0x4fd16a, 'outline'),
+    pending: sem(0x9fb2c6, 'dots'),
+    failing: sem(0xe5323c, 'exclamation'),
+    lost: sem(0x6b7785, 'mesh'),
+    draft: sem(0xffb347, 'double-line'),
+  },
   /** Debrief heatmaps and time-lapse; each map has its own tab and a text label, so hue is never the only cue. */
   debrief: {
     infection: 0xb04bff,

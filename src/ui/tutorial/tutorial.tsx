@@ -3,11 +3,11 @@ import { signal } from '@preact/signals';
 import type { CommandSink, SimView } from '../../core/types/app';
 import { CHECK_MS, LESSONS, MARKER_PAD_PX } from '../../data/tutorial';
 import type { Condition, Lesson, StartAction } from '../../data/tutorial/types';
-import { cameraView, jumpCamera, selectedUnits } from '../../render/view-state';
+import { cameraView, jumpCamera } from '../../render/view-state';
 import { onCommand } from '../command-tap';
 import { usePoll } from '../hud/use-poll';
 import { t } from '../i18n';
-import { activeLessonId, loadingState, sidePanel } from '../ui-state';
+import { activeLessonId, commandTab, loadingState, sidePanel } from '../ui-state';
 import { markLessonDone } from './progress';
 
 const LOCAL_PLAYER = 0;
@@ -36,8 +36,8 @@ function check(cond: Condition, sim: SimView): boolean {
       return Math.hypot(cameraView.cx - base.cam.cx, cameraView.cy - base.cam.cy) * cameraView.zoom > 40;
     case 'zoomed':
       return Math.abs(Math.log(cameraView.zoom / base.cam.zoom)) > 0.15;
-    case 'selected':
-      return selectedUnits.value.length >= cond.min;
+    case 'tab':
+      return commandTab.value === cond.tab;
     case 'speed': {
       const s = sim.stats.speed;
       return cond.exactly !== undefined ? s === cond.exactly : s >= (cond.atLeast ?? 0);

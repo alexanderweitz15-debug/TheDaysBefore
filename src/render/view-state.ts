@@ -25,7 +25,16 @@ export function screenToWorld(sx: number, sy: number): { x: number; y: number } 
   };
 }
 
-export type ToolName = 'none' | 'corridor' | 'safeZone' | 'rallyPoint' | 'build' | 'attackArea';
+export type ToolName =
+  | 'none'
+  | 'corridor'
+  | 'safeZone'
+  | 'rallyPoint'
+  | 'build'
+  | 'attackArea'
+  | 'defendLine'
+  | 'holdZone'
+  | 'occupyBuilding';
 
 /** Active civil tool (keys K, Z, V). Set by the UI, drawn as a preview by the renderer. */
 export const activeTool = signal<ToolName>('none');
@@ -42,19 +51,17 @@ export const toolDraft = {
   cursorY: Number.NaN,
 };
 
-/** Unit ids selected by the player. Replaced (never mutated) so effects and layers can compare identity. */
-export const selectedUnits = signal<readonly number[]>([]);
 /** Structure selected by the player, or null. */
 export const selectedStructure = signal<number | null>(null);
 
+/** City building under the pointer while the occupy tool is armed (map.buildings index), -1 if none. */
+export const orderHover = { buildingId: -1 };
+
 /** What the build tool (tool 'build') places. */
-export type BuildArm = { kind: 'unit'; unit: string } | { kind: 'structure'; structure: string };
+export type BuildArm = { kind: 'structure'; structure: string };
 export const buildArm = signal<BuildArm | null>(null);
 /** Rotation for point structures, radians. */
 export const buildState = { rotation: 0 };
-
-/** Screen-space selection box while dragging, or null. */
-export const selectionBox = signal<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
 /** One-shot camera request: the camera moves to (x, y) on its next update. */
 export const cameraRequest = { pending: false, x: 0, y: 0, zoom: 0 };

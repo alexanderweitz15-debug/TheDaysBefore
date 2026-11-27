@@ -2,12 +2,13 @@
 import type { SimView } from '../../core/types/app';
 import type { StructureView, UnitView } from '../../core/types/combat';
 import type { CityMapData } from '../../core/types/map';
+import type { ScenarioDef } from '../../core/types/mission';
 import { writeSnapshotHeader } from '../../core/types/snapshot';
 import type { ZoneView } from '../../core/types/zones';
 import { mountUi } from '../../ui/app';
-import { menuVisible } from '../../ui/ui-state';
+import { activeScenario, commandTab, menuVisible, orderDraft } from '../../ui/ui-state';
 import { createRenderer } from '../renderer';
-import { activeTool, buildArm, jumpCamera, selectedStructure, selectedUnits, toolDraft } from '../view-state';
+import { activeTool, buildArm, jumpCamera, selectedStructure, toolDraft } from '../view-state';
 import { fixtureMap } from './fixture-map';
 
 const map = fixtureMap(250);
@@ -125,7 +126,63 @@ const zones: ZoneView[] = [
   { id: 4, kind: 'rallyPoint', shape: [1200, 900], capacity: 80, occupants: 5, breached: false },
 ];
 const listeners: ((s: typeof snap) => void)[] = [];
+const withOrders = q.has('orders');
 const sim: SimView = {
+  orders: withOrders
+    ? [
+        {
+          id: 1,
+          kind: 'defendLine',
+          shape: [800, 700, 1100, 640],
+          buildingId: -1,
+          requested: { infantry: 3, mgTeam: 1 },
+          assigned: [1, 2, 3],
+          inPosition: 2,
+          stance: 'hold',
+          status: 'active',
+        },
+        {
+          id: 2,
+          kind: 'holdZone',
+          shape: [1200, 800, 1450, 950],
+          buildingId: -1,
+          requested: { infantry: 2 },
+          assigned: [],
+          inPosition: 0,
+          stance: 'hold',
+          status: 'pending',
+        },
+        {
+          id: 3,
+          kind: 'occupyBuilding',
+          shape: [900, 900],
+          buildingId: 5,
+          requested: { infantry: 1 },
+          assigned: [4],
+          inPosition: 1,
+          stance: 'hold',
+          status: 'active',
+        },
+        {
+          id: 4,
+          kind: 'occupyBuilding',
+          shape: [900, 900],
+          buildingId: 9,
+          requested: { infantry: 1 },
+          assigned: [5],
+          inPosition: 1,
+          stance: 'hold',
+          status: 'failing',
+        },
+      ]
+    : [],
+  reserve: withOrders ? { idle: { infantry: 2, sniperTeam: 1 }, returning: 1 } : { idle: {}, returning: 0 },
+  garrisons: withOrders
+    ? [
+        { buildingId: 5, unitIds: [4], integrity: 0.8 },
+        { buildingId: 9, unitIds: [5], integrity: 0.2 },
+      ]
+    : [],
   prev: null,
   curr: snap,
   alpha: () => 1,
@@ -191,22 +248,27 @@ mountUi(document.getElementById('ui') as HTMLElement, {
 });
 
 menuVisible.value = false;
+if (q.has('hud')) activeScenario.value = {} as ScenarioDef;
+if (q.has('tab')) commandTab.value = q.get('tab') as 'orders';
 // Scenario from the URL: ?zoom=4&cx=920&cy=520&sel=13&tool=attack|wall|mine&fx=1
 const zoom = Number(q.get('zoom') ?? 0);
 if (zoom > 0) jumpCamera(Number(q.get('cx') ?? 920), Number(q.get('cy') ?? 520), zoom);
 if (q.has('sel')) selectedStructure.value = Number(q.get('sel'));
 const tool = q.get('tool');
-if (tool === 'attack') {
-  selectedUnits.value = [3];
+if (tool === 'order') {
+  orderDraft.value = { kind: 'defendLine', squads: { infantry: 1 }, stance: 'hold' };
+  activeTool.value = 'defendLine';
+  toolDraft.startX = 700;
+  toolDraft.startY = 500;
+  toolDraft.cursorX = 1000;
+  toolDraft.cursorY = 560;
+} else if (tool === 'attack') {
   activeTool.value = 'attackArea';
   toolDraft.cursorX = 960;
   toolDraft.cursorY = 560;
-} else if (tool === 'wall' || tool === 'mine' || tool === 'unit') {
+} else if (tool === 'wall' || tool === 'mine') {
   activeTool.value = 'build';
-  buildArm.value =
-    tool === 'unit'
-      ? { kind: 'unit', unit: 'infantry' }
-      : { kind: 'structure', structure: tool === 'wall' ? 'wall' : 'mines' };
+  buildArm.value = { kind: 'structure', structure: tool === 'wall' ? 'wall' : 'mines' };
   toolDraft.startX = tool === 'wall' ? 850 : Number.NaN;
   toolDraft.startY = 650;
   toolDraft.cursorX = tool === 'wall' ? 950 : 900;

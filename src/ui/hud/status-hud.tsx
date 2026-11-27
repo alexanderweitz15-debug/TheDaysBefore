@@ -19,7 +19,9 @@ export function ToolHint() {
       </div>
     );
   }
-  if (tool === 'none') return null;
+  // Order tools show their hint inside the order dialog.
+  if (tool === 'none' || tool === 'defendLine' || tool === 'holdZone' || tool === 'occupyBuilding')
+    return null;
   return (
     <div class="sz-panel sz-tool-hint" role="status" data-tutorial-id="tool-hint">
       {tool === 'build' ? t(buildHint()) : t(`tool.${tool}`)}
@@ -28,8 +30,8 @@ export function ToolHint() {
   );
 }
 
-function buildHint(): 'tool.build.unit' | 'tool.build.point' | 'tool.build.line' {
+function buildHint(): 'tool.build.point' | 'tool.build.line' {
   const a = buildArm.value;
-  if (!a || a.kind === 'unit') return 'tool.build.unit';
+  if (!a) return 'tool.build.point';
   return STRUCTURES[a.structure as keyof typeof STRUCTURES].line ? 'tool.build.line' : 'tool.build.point';
 }

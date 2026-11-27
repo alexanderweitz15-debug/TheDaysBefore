@@ -82,6 +82,10 @@ const GLYPHS: Record<string, string> = {
   corridor: 'M4 20c0-6 4-4 6-8s-2-6 4-8m0 0 4-1m-4 1 1 4M16 17l4 3m0 0v-3m0 3h-3',
   safeZone: 'M4 4h16v16H4V4Zm8 4v8M8 12h8',
   rallyPoint: 'M6 21V3m0 1h12l-3 4 3 4H6',
+  // orders
+  defendLine: 'M3 18 21 6M5 21v-4m5 1v-5m5 0v-5',
+  holdZone: 'M4 4h16v16H4V4Zm4 4h8v8H8V8Z',
+  occupyBuilding: 'M5 21V6l7-3 7 3v15H5Zm4-4h2v4H9v-4Zm4 0h2v4h-2v-4ZM9 8h2m2 0h2m-6 4h2m2 0h2',
   // windows
   economy: 'M4 20V10m6 10V4m6 16v-7m5 7H3M13 8l3-3 3 3',
   population:
@@ -91,7 +95,13 @@ const GLYPHS: Record<string, string> = {
 
 export function Glyph({ id, size = 24 }: { id: string; size?: number }) {
   return (
-    <svg class="sz-glyph" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+    <svg
+      class="sz-glyph"
+      viewBox="0 0 24 24"
+      width={`${size / 16}rem`}
+      height={`${size / 16}rem`}
+      aria-hidden="true"
+    >
       <path
         d={GLYPHS[id] ?? ''}
         fill="none"

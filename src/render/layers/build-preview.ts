@@ -31,7 +31,7 @@ import {
 import { UNIT_TYPE_ORDER, UNITS } from '../../data/units/present';
 import { numberLocale, t } from '../../ui/i18n';
 import { palette } from '../palette';
-import { activeTool, buildArm, buildState, selectedUnits, toolDraft } from '../view-state';
+import { activeTool, buildArm, buildState, toolDraft } from '../view-state';
 
 /** True when a world point lies on map terrain that can carry a structure or unit (no water, no building). */
 export function placeable(map: CityMapData | null, x: number, y: number): boolean {
@@ -78,8 +78,7 @@ export class PreviewLayer {
     else {
       const arm = buildArm.value;
       if (!arm) return;
-      if (arm.kind === 'unit') this.unit(sim, arm.unit as UnitTypeId, zoom);
-      else this.structure(sim, arm.structure as StructureKind, zoom);
+      this.structure(sim, arm.structure as StructureKind, zoom);
     }
   }
 
@@ -112,24 +111,6 @@ export class PreviewLayer {
     this.g.moveTo(x - r, y - r).lineTo(x + r, y + r);
     this.g.moveTo(x + r, y - r).lineTo(x - r, y + r);
     this.g.stroke({ width: px * 2.5, color });
-  }
-
-  private unit(sim: SimView, type: UnitTypeId, zoom: number): void {
-    const g = this.g;
-    const { cursorX: x, cursorY: y } = toolDraft;
-    const px = 1 / zoom;
-    const spec = UNITS[type];
-    const budget = sim.stats.counters.budget;
-    const terrainOk = placeable(sim.map, x, y);
-    const ok = terrainOk && budget >= spec.cost;
-    const color = ok ? palette.preview.ok : palette.preview.bad;
-    const r = Math.max(UNIT_PLACE_RADIUS_M, 8 * px);
-    g.circle(x, y, r)
-      .fill({ color, alpha: PREVIEW_FILL_ALPHA })
-      .stroke({ width: px * 2, color, alpha: PREVIEW_LINE_ALPHA });
-    if (spec.rangeM > 0) g.circle(x, y, spec.rangeM).stroke({ width: px, color, alpha: PREVIEW_RANGE_ALPHA });
-    if (!ok) this.cross(x, y, r * 0.6, px, color);
-    this.setLabel(this.costText(spec.cost, 0, budget, terrainOk), zoom, x, y, color);
   }
 
   private costText(cost: number, length: number, budget: number, terrainOk: boolean): string {
@@ -245,9 +226,9 @@ export class PreviewLayer {
     const g = this.g;
     const px = 1 / zoom;
     const { cursorX: x, cursorY: y } = toolDraft;
-    const sel = new Set(selectedUnits.value);
+    // Area fire is ordered for every area-fire unit (mortars), there is no selection.
     const types = new Map<number, UnitTypeId>();
-    for (const u of sim.units) if (sel.has(u.id) && UNITS[u.type].areaRadiusM > 0) types.set(u.id, u.type);
+    for (const u of sim.units) if (UNITS[u.type].areaRadiusM > 0) types.set(u.id, u.type);
     let radius = 0;
     let inRange = false;
     let tooClose = false;

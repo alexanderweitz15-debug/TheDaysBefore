@@ -1,6 +1,6 @@
-// Placement of units and structures while tool 'build' is armed (GDD 14, Bauen). Points: click. Lines: drag.
+// Placement of structures while tool 'build' is armed (GDD 14, Bauen). Points: click. Lines: drag.
 
-import type { StructureKind, UnitTypeId } from '../../core/commands';
+import type { StructureKind } from '../../core/commands';
 import type { CommandSink, SimView } from '../../core/types/app';
 import { STRUCTURES } from '../../data/buildings/defense';
 import { MIN_LINE_LENGTH_M, ROTATE_STEP } from '../../data/hud';
@@ -29,15 +29,6 @@ export function installBuildTool(sim: SimView, commands: CommandSink): () => voi
     const p = screenToWorld(e.clientX, e.clientY);
     // Invalid ground (off map, water, building): no command, the red preview is the hint.
     if (!placeable(sim.map, p.x, p.y)) return;
-    if (a.kind === 'unit') {
-      commands.submit({
-        playerId: LOCAL_PLAYER,
-        type: 'PlaceUnit',
-        payload: { unitType: a.unit as UnitTypeId, x: p.x, y: p.y },
-      });
-      if (!e.shiftKey) cancelTool();
-      return;
-    }
     const spec = STRUCTURES[a.structure as StructureKind];
     if (spec.line) {
       lineStart = p;

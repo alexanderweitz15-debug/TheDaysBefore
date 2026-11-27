@@ -1,16 +1,21 @@
-// Command bar (GDD 14): build tabs Units / Defense / Civil with icons and costs; window buttons as small icons at the right.
+// Command bar (GDD 14): tabs Units (buys into the reserve) / Orders / Defense / Civil with icons and costs;
+// window buttons as small icons at the right.
 import type { StructureKind, UnitTypeId } from '../../core/commands';
-import type { SimView } from '../../core/types/app';
+import type { CommandSink, SimView } from '../../core/types/app';
 import { STRUCTURES } from '../../data/buildings/defense';
+import { BUY_SHIFT_COUNT, ORDER_TOOLS, type OrderTool } from '../../data/hud-orders';
 import { UNIT_TYPE_ORDER, UNITS } from '../../data/units/present';
 import { activeTool, type BuildArm, buildArm, type ToolName } from '../../render/view-state';
 import { Glyph } from '../components/icons';
 import { numberLocale, t, tryT } from '../i18n';
+import { areaFireUnits, armAttackArea } from '../tools/attack-tool';
+import { armOrder, hqPosition } from '../tools/order-tool';
 import { cancelTool } from '../tools/zone-tools';
 import { commandTab, type SidePanelId, sidePanel } from '../ui-state';
 import { usePoll } from './use-poll';
 
-const TABS = ['units', 'defense', 'civil'] as const;
+const LOCAL_PLAYER = 0;
+const TABS = ['units', 'orders', 'defense', 'civil'] as const;
 const WINDOWS: ReadonlyArray<{ id: SidePanelId; key: string }> = [
   { id: 'economy', key: '' },
   { id: 'population', key: 'P' },
@@ -27,7 +32,7 @@ const STRUCTURE_ORDER: readonly StructureKind[] = [
   'depot',
 ];
 const CIVIL: ReadonlyArray<{
-  tool: Exclude<ToolName, 'none' | 'build' | 'attackArea'>;
+  tool: Exclude<ToolName, 'none' | 'build' | 'attackArea' | OrderTool>;
   key: 'K' | 'Z' | 'V';
 }> = [
   { tool: 'corridor', key: 'K' },
@@ -56,10 +61,11 @@ interface ItemProps {
   cost: string;
   locked: boolean;
   active: boolean;
-  onPick: () => void;
+  badge?: string;
+  onPick: (shift: boolean) => void;
 }
 
-function Item({ id, glyph, label, tip, cost, locked, active, onPick }: ItemProps) {
+function Item({ id, glyph, label, tip, cost, locked, active, badge, onPick }: ItemProps) {
   return (
     <button
       type="button"
@@ -68,16 +74,17 @@ function Item({ id, glyph, label, tip, cost, locked, active, onPick }: ItemProps
       aria-pressed={active}
       title={`${tip ?? label}\n${locked ? t('cmd.noBudget') : `${t('cmd.cost')}: ${cost}`}`}
       data-tutorial-id={`cmd-${id}`}
-      onClick={() => !locked && onPick()}
+      onClick={(e) => !locked && onPick(e.shiftKey)}
     >
       <Glyph id={glyph} />
       <span class="sz-cmd__label">{label}</span>
       <span class="sz-mono sz-cmd__cost">{cost}</span>
+      {badge && <span class="sz-mono sz-cmd__badge">{badge}</span>}
     </button>
   );
 }
 
-export function CommandBar({ sim }: { sim: SimView }) {
+export function CommandBar({ sim, commands }: { sim: SimView; commands: CommandSink }) {
   usePoll();
   const budget = sim.mission?.resources.budget.amount ?? sim.stats.counters.budget;
   const fmt = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
@@ -130,13 +137,54 @@ export function CommandBar({ sim }: { sim: SimView }) {
               id={`unit-${u}`}
               glyph={u}
               label={shortName(u)}
-              tip={t(`unit.${u}`)}
+              tip={`${t(`unit.${u}`)}\n${t('cmd.buy.tip', { count: BUY_SHIFT_COUNT })}`}
               cost={fmt.format(UNITS[u].cost)}
               locked={budget < UNITS[u].cost}
-              active={tool === 'build' && armed?.kind === 'unit' && armed.unit === u}
-              onPick={() => arm({ kind: 'unit', unit: u })}
+              active={false}
+              badge={t('cmd.reserve', { count: sim.reserve.idle[u] ?? 0 })}
+              onPick={(shift) => {
+                // Purchases go into the reserve at the HQ; the position is only a hint for the sim.
+                const hq = hqPosition(sim);
+                const n = shift
+                  ? Math.max(1, Math.min(BUY_SHIFT_COUNT, Math.floor(budget / UNITS[u].cost)))
+                  : 1;
+                for (let i = 0; i < n; i++)
+                  commands.submit({
+                    playerId: LOCAL_PLAYER,
+                    type: 'PlaceUnit',
+                    payload: { unitType: u, x: hq.x, y: hq.y },
+                  });
+              }}
             />
           ))}
+        {tab === 'orders' && (
+          <>
+            {ORDER_TOOLS.map((k) => (
+              <Item
+                key={k}
+                id={`order-${k}`}
+                glyph={k}
+                label={t(`cmd.order.${k}`)}
+                tip={`${t(`cmd.order.${k}`)}\n${t('cmd.order.tip')}`}
+                cost={t(`cmd.order.${k}.how`)}
+                locked={false}
+                active={tool === k}
+                onPick={() => armOrder(sim, k)}
+              />
+            ))}
+            {areaFireUnits(sim).length > 0 && (
+              <Item
+                id="fire-support"
+                glyph="mortar"
+                label={t('cmd.fireSupport')}
+                cost={t('cmd.fireSupport.how')}
+                locked={false}
+                active={tool === 'attackArea'}
+                onPick={() => armAttackArea(sim)}
+              />
+            )}
+          </>
+        )}
         {tab === 'defense' &&
           STRUCTURE_ORDER.map((k) => {
             const s = STRUCTURES[k];

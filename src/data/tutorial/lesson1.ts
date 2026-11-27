@@ -1,4 +1,4 @@
-// Lesson 1 "Erste Linie" (GDD 15): camera, select, move, stances, wall and gate, safe zone, pause and speed.
+// Lesson 1 "Erste Linie" (GDD 15): camera, buy into the reserve, defend line order, stance, wall and gate, safe zone, pause and speed.
 import { parseScenario } from '../scenarios/schema';
 import type { Lesson } from './types';
 
@@ -40,22 +40,22 @@ export const LESSON_1: Lesson = {
       done: { kind: 'command', command: 'PlaceUnit' },
     },
     {
-      id: 'select',
-      text: 'tutorial.l1.select',
-      marker: { area: { x: 0.5, y: 0.5, r: 0.12 } },
-      done: { kind: 'selected', min: 1 },
+      id: 'tabOrders',
+      text: 'tutorial.l1.tabOrders',
+      marker: { ui: 'cmd-tab-orders' },
+      done: { kind: 'tab', tab: 'orders' },
     },
     {
-      id: 'move',
-      text: 'tutorial.l1.move',
-      marker: { area: { x: 0.5, y: 0.5, r: 0.12 } },
-      done: { kind: 'command', command: 'MoveUnits' },
+      id: 'defendLine',
+      text: 'tutorial.l1.defendLine',
+      marker: { ui: 'cmd-order-defendLine' },
+      done: { kind: 'command', command: 'DefendLine' },
     },
     {
       id: 'stance',
       text: 'tutorial.l1.stance',
-      marker: { ui: 'ctx-stance-hold' },
-      done: { kind: 'command', command: 'SetStance' },
+      marker: { ui: 'order-list' },
+      done: { kind: 'command', command: 'UpdateOrder' },
     },
     {
       id: 'wall',

@@ -4,7 +4,7 @@ import type { ScenarioDef } from '../core/types/mission';
 import type { SaveGame } from '../core/types/save';
 import { FREE_MODE, makeSkirmish, newSkirmishSeed } from '../data/scenarios';
 import { LESSONS } from '../data/tutorial';
-import { repurposeTarget, selectedStructure, selectedUnits } from '../render/view-state';
+import { repurposeTarget, selectedStructure } from '../render/view-state';
 import {
   activeLessonId,
   activeScenario,
@@ -31,7 +31,6 @@ export function getSession(): SessionControl | null {
 }
 
 function resetView(): void {
-  selectedUnits.value = [];
   selectedStructure.value = null;
   repurposeTarget.value = null;
   sidePanel.value = null;

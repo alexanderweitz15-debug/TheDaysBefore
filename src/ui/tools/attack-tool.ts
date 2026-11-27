@@ -1,18 +1,17 @@
-// Area fire (GDD 14, Interaktion): with an area-fire unit selected (mortar), key G or the context button arms the
-// tool, the renderer shows radius and estimated civilians, a click orders AttackArea. Umschalt keeps it armed.
+// Fire support (GDD 14): key G or the command bar button arms the tool for all area-fire units (mortars, in orders or
+// reserve), the renderer shows radius and estimated civilians, a click orders AttackArea. Umschalt keeps it armed.
 import type { CommandSink, SimView } from '../../core/types/app';
 import { ATTACK_KEY } from '../../data/render-combat';
 import { UNITS } from '../../data/units/present';
-import { activeTool, buildArm, screenToWorld, selectedUnits } from '../../render/view-state';
+import { activeTool, buildArm, screenToWorld } from '../../render/view-state';
 import { menuVisible, settingsOpen } from '../ui-state';
 import { cancelTool } from './zone-tools';
 
 const LOCAL_PLAYER = 0;
 
-/** Selected unit ids that can fire at an area. */
+/** Ids of all own units that can fire at an area. */
 export function areaFireUnits(sim: SimView): number[] {
-  const sel = new Set(selectedUnits.value);
-  return sim.units.filter((u) => sel.has(u.id) && UNITS[u.type].areaRadiusM > 0).map((u) => u.id);
+  return sim.units.filter((u) => UNITS[u.type].areaRadiusM > 0).map((u) => u.id);
 }
 
 export function armAttackArea(sim: SimView): void {
