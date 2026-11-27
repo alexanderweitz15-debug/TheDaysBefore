@@ -36,3 +36,18 @@
 - Layout styles.css: Leiste oben, Perf darunter (3,5rem), Minikarte + Kontextpanel rechts unten, Befehlsleiste unten Mitte, ToolHint darüber (9rem).
 - Einheiten: sim.curr.units (kind = Index UNIT_TYPE_ORDER, id = UnitView.id) + sim.units für Details. Harness: structures leer, für Tests eintragen.
 - Offen: Einheiten/Bauwerke/Projektile/FX zeichnen, Bau-Vorschau, AttackArea verdrahten, 1280x720 prüfen.
+
+## Nachtrag M3 B2
+- render/layers/: units.ts (taktische Symbole, ab Zoom 4 Silhouetten, Balken nach Einstellung unitBars), structures.ts + structure-geometry.ts, projectiles.ts, fx.ts + particles.ts (feste Pools), build-preview.ts (grün/rot, Live-Kosten), tracked.ts. ui/tools/attack-tool.ts (Taste G, Zivilisten-Schätzung). data/render-combat.ts.
+- Einstellungen neu: unitBars, particles, screenShake, noFlashes, confirmRemoval, devTools.
+- Konventionen der Sim (combat.ts): FX-param shot = rad, explosion/mineBlast = Radius; Projektil-kind 0 Geschoss, 1 Granate; Tor flag true = offen.
+- Befehlsleiste einzeilig, horizontal scrollbar (1280x720 geprüft). build-tool sendet nur bei zulässiger Platzierung.
+- M4 neu: SimView.mission (MissionView, src/core/types/mission.ts), SessionControl.restart(seed, size, scenario) in UiDeps.session; onMap feuert nach jedem Restart erneut -> Renderer muss neue Karte komplett neu aufbauen.
+
+## Nachtrag M4 B1/B2
+- data/scenarios/ (schema.ts zod, rheinstadt.ts, hafenstadt.ts, index.ts mit FREE_MODE, Hinweis-Schwelle, Wertungsfaktor), data/hud-economy.ts. BUILT_MILESTONE = 4, Szenario freigeschaltet.
+- ui/session.ts (startScenario, restartMission, toMainMenu, finishLoading), ui-state: sidePanel, briefingOpen, activeScenario, loadingState, openWarning. screens/briefing.tsx (Vorschau via core/map-preview requestMap, gemalt in briefing.tsx), loading.tsx (Schritte aus mapBake in view-state + sim.mission), main-menu mit Pausenabschnitt.
+- hud/: resource-bar (Ebenen ok/warn/crit, Marker "!"/"!!"), phase-indicator (Countdown, Ausbruch auslösen mit Bestätigung, Moral), warning-markers (DOM-Marker per rAF aus cameraView). windows/: side-panel + economy/population/decrees. Taste P: Bevölkerung -> Erlasse -> zu. Wirtschaft nur per Befehlsleiste.
+- Umwidmen: Wirtschaftsfenster offen + Klick auf Stadtgebäude (select-tool) -> repurposeTarget; render/layers/economy-marks.ts zeichnet Umrisse (Engpass rot + Kreuz).
+- Browser-Test: /tmp-Skript per CDP (google-chrome --remote-debugging-port, Node-WebSocket); kein Playwright installiert. Viewport headless nur ca. 1280x520.
+- Offen: Warnzeichen-Marker und Umwidmen nicht live getestet (keine Warnungen/Gebäude im Testlauf sichtbar); Power-Semantik (amount<0 = rot) geraten; main.ts hat Seed doppelt (FREE_MODE).

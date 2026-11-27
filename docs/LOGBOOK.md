@@ -119,3 +119,32 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 02:28 | M3 | qa-review | FIX | it.fails-Marker entfernt, Bench-Gitter auf begehbare Zellen (200 Trupps), Sanity-Grenze Trupps nach Kampf 80 % | tests/m3-robustness.test.ts bench/run.ts | fast 226 grün, Bench grün
 2026-11-27 02:32 | M3 | sim-engine | FIX | civilians.test.ts und combat.test.ts thematisch geteilt, corridors.test.ts langsam | src/sim/population/ src/sim/combat/ | fast 226 grün
 2026-11-27 02:32 | M3 | hauptagent | ABNAHME | M3 bestanden, 252 Tests grün, alle Dateien < 400 Zeilen | docs/progress/M3.md | bestanden
+2026-11-27 02:35 | M3 | hauptagent | COMMIT | M3 in fünf Commits auf main, CI grün (fast 48 s, slow 2:29 min) | - | 9821917
+2026-11-27 02:35 | M3 | hauptagent | STOPP | M3 auf main und Pages. Nächster Schritt M4 Farmphase und Wirtschaft | - | -
+2026-11-27 02:35 | M4 | hauptagent | START | Meilenstein M4 Farmphase und Wirtschaft begonnen | - | -
+2026-11-27 02:37 | M4 | hauptagent | PLAN | Plan M4, Schnittstellen (Wirtschaftsbefehle, mission.ts, restart) und Daten economy.ts | docs/plans/M4.md src/core/ src/data/economy/ | -
+2026-11-27 02:37 | M4 | sim-engine | AUFTRAG | A1 Wirtschaft, A2 Bevölkerung und Moral, A3 Phasen und Warnzeichen | src/sim/ src/data/economy/ | -
+2026-11-27 02:37 | M4 | gameplay-ui | AUFTRAG | B1 Szenarien, Briefing, Ladebildschirm, Neustart; B2 HUD Ressourcen, Wirtschaft, Bevölkerung, Erlasse, Warnzeichen (frischer Agent) | src/ui/ src/render/ src/data/ | -
+2026-11-27 02:37 | M4 | qa-review | AUFTRAG | C1 fake-world mission(), Abnahmetest M4 vorbereiten | tests/ | -
+2026-11-27 02:39 | M4 | qa-review | FERTIG | fake-world mission(), Abnahmetest M4 vorbereitet (M4_ACCEPT=1, 5 Tests) | tests/core/fake-world.ts tests/m4-acceptance.test.ts | fast 223 grün, 5 übersprungen
+2026-11-27 06:11 | M4 | hauptagent | FEHLER | 5-Stunden-Limit erreicht, sim-engine und gameplay-ui gestoppt | - | Arbeit im Arbeitsbaum
+2026-11-27 06:11 | M4 | hauptagent | START | Fortsetzung nach Limit: sim-engine (A1-A3), gameplay-ui (B1/B2) | - | -
+2026-11-27 06:15 | M4 | gameplay-ui | FERTIG | B1 Szenarien mit zod, Briefing, Ladebildschirm, Pausenmenü/Neustart; B2 Ressourcenleiste, Phase/Countdown, Fenster Wirtschaft/Bevölkerung/Erlasse, Warnzeichen | src/ui/ src/data/scenarios/ src/render/ | Biome, tsc, vite build grün, im Browser geprüft
+2026-11-27 06:15 | M4 | hauptagent | ENTSCHEIDUNG | Kartenvorschau über core/map-worker (UI importiert kein sim); main.ts nutzt FREE_MODE; Strom = Nettobilanz | src/core/map-worker.ts src/core/map-preview.ts src/main.ts | -
+2026-11-27 06:16 | M4 | gameplay-ui | FIX | Briefing-Vorschau über core/map-preview, UI importiert kein sim mehr | src/ui/screens/briefing.tsx | Biome, vite build grün, im Browser geprüft
+2026-11-27 06:19 | M4 | sim-engine | FERTIG | A1-A3 Wirtschaft, Bevölkerung, Moral, Erlasse, Phasen, Warnzeichen, klassischer Start | src/sim/economy/ | fast 248 grün, M4-Abnahme 3/5 (2 Testaufbau/Balance)
+2026-11-27 06:19 | M4 | hauptagent | ENTSCHEIDUNG | Miliz als eigener UnitTypeId militia (GDD 9); Patient Null soll bei Menschen erscheinen statt Testschwelle senken | src/core/commands.ts src/data/units/present.ts | -
+2026-11-27 06:19 | M4 | sim-engine | AGENT-NEU | Kontext 210.000 Tokens; Nachtrag aus Bericht in Übergabe; Folgeauftrag an frischen Agenten | docs/handover/sim-engine.md | -
+2026-11-27 06:19 | M4 | sim-engine | AUFTRAG | Miliz-Typ, Patient Null in Menschenmenge (<= 2400 Ticks bis Verteidigung), Panik-Erlasse | src/sim/ | -
+2026-11-27 06:19 | M4 | gameplay-ui | AUFTRAG | Miliz in Render-Daten und i18n, nicht kaufbar | src/data/ src/render/ src/ui/ | -
+2026-11-27 06:19 | M4 | qa-review | AUFTRAG | Abnahmetest M4 Aufbau korrigieren, Playwright-Durchlauf | tests/ docs/progress/M4.md | -
+2026-11-27 06:19 | M4 | gameplay-ui | FERTIG | Miliz in Render-Daten, Symbol, i18n, aus Einheitenliste ausgeblendet | src/data/render-combat.ts src/render/layers/units.ts src/ui/hud/command-bar.tsx | tsc und Biome grün
+2026-11-27 06:26 | M4 | qa-review | REVIEW | M4 headless 4/5 (rot: Ausbruch->Verteidigung > 2400 Ticks, wartet auf Sim-Fix), Playwright-Durchlauf bestanden; 3 UI-Befunde | tests/m4-acceptance.test.ts docs/progress/M4.md | teilweise
+2026-11-27 06:26 | M4 | gameplay-ui | AUFTRAG | Befunde: i18n morale.success, Kamera nach Restart einpassen, Freimodus-HUD hinter Briefing ausblenden | src/ui/ src/render/ src/data/i18n/ | -
+2026-11-27 06:26 | M4 | qa-review | AUFTRAG | Fehlende Tests: Restart-Pfad, zod-Szenarien, +25 % nach Ausbruch, Streik, Freiwillige | tests/ | -
+2026-11-27 06:28 | M4 | gameplay-ui | FIX | morale.success i18n, Kamera passt nach Restart ein, HUD nur im Spiel | src/ui/app.tsx src/render/camera.ts src/data/ | im Browser geprüft, Biome grün
+2026-11-27 06:28 | M4 | qa-review | FERTIG | m4-rules.test.ts: zod-Szenarien, Restart-Hash, +25 % nach Ausbruch, Streik, Freiwillige | tests/m4-rules.test.ts | fast 261 grün, 5 übersprungen
+2026-11-27 06:30 | M4 | sim-engine | FIX | Miliz als eigener Typ, Patient Null in Menschenmenge mit erster Kette (942-1906 Ticks bis Verteidigung), Panik-Erlasse und Moral-Panik | src/sim/economy/ src/sim/infection/attack.ts src/sim/population/perception.ts | fast 261 grün, Freimodus bitgleich, Bench im Ziel
+2026-11-27 06:30 | M4 | hauptagent | ENTSCHEIDUNG | Erste Infektionskette angenommen (GDD 6) | docs/DECISIONS.md | -
+2026-11-27 06:35 | M4 | qa-review | REVIEW | M4-Abnahme ohne Variable grün (5/5), 295 Tests, Bench im Ziel (gen-medium streut) | tests/m4-acceptance.test.ts docs/progress/M4.md | bestanden
+2026-11-27 06:35 | M4 | hauptagent | ABNAHME | M4 bestanden: Briefing -> Farmphase -> Ausbruch -> Verteidigung headless und im Browser durchgängig | docs/progress/M4.md | bestanden

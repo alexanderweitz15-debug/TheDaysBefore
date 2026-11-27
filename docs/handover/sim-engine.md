@@ -58,3 +58,17 @@ graph.ts: Brückenstücke enden exakt an Uferpunkten (4 m Überstand nur beim Ma
 - Abweichungen: Linien in 8-m-Segmente mit eigener id; Lärm einmal pro Sekunde je feuerndem Trupp; Zombie-Dichte vor der Bewegung gebaut; Tore blockieren Zombies immer, Menschen nur geschlossen; Sprengladungen zerstören Bauwerke, aber keine Stadtgebäude/Brücken (Karte unveränderlich); Draht wirkt erst fertig gebaut; Wachturm 2 m Radius.
 - Offen: Tor in bestehende Mauer setzen, facing ignoriert, Polizei-Korridorbonus, Sanitäter behandeln Infizierte, Moral durch HQ/Offiziere.
 - Leistung: medium-30k-10k 12,8/18,5 ms (avg/p95), Ausbruch + 30.000 + 200 Trupps + 2 km Mauern 12,6/17,3, nach 2 min 14,9/17,8; Spitzen bis 31 ms.
+
+## Nachtrag M4 A1–A3 (Wirtschaft, Bevölkerung, Phasen)
+- Neu: src/sim/economy/ (economy.ts, production.ts, population.ts, mission.ts, mission-view.ts, test-fixtures.ts, 3 Testdateien, 25 Tests). Geändert: state.ts, world.ts (Setup, Schritt 4, Befehle, mission(), Hash), units.ts (Preis-Parameter, Munition aus Vorrat), fire.ts (Nachladen am HQ aus Vorrat), structures.ts/structure-system.ts (Material, x1,25 nach Ausbruch, Bautempo).
+- Daten ergänzt in economy.ts: ECONOMY_RULES, STRUCTURE_MATERIAL, Miliz-Werte in POPULATION, Moral-Erfolge/Erlass-Ziel/Freiwillige.
+- Freier Modus bitgleich: Wirtschaft und Mission werden nur im Szenario gehasht.
+- Abweichungen: Erlass-Moral als Beitrag zum Moral-Ziel (nicht Drift). Warnzeichen-Keys `warning.<key>`.
+- Offen: Miliz als eigener Typ 'militia' (seit M4 in core und data/units/present.ts, bisher als Infanterie gebaut), Panik-Erlasse (curfew, martialLaw) und frühere Panik bei niedriger Moral, Patient Null erreicht auf Seed 11 erst nach ~5.000 Ticks Menschen.
+- Leistung: 30k/10k 9,3/12,0 ms, Ausbruch 10,0/12,9, Kampf 9,5/12,9, Generierung 154 ms.
+
+## Nachtrag M4-Nacharbeit
+- Miliz: Wehrpflichtige bilden Trupps 'militia' (moraleLossFactor 2, notPlaceable in data/units/present.ts; loseMorale in unit-damage.ts/units.ts). PlaceUnit 'militia' abgelehnt.
+- Patient Null: nächste Stelle im Umkreis 400 m um den Ort mit ≥ 25 Zivilisten im 24-m-Fenster (crowdNear/firstChain in sim/economy/mission.ts, infectCivilian in infection/attack.ts); erste Kette: PHASES.patientZeroFirstChain = 8 nächste Zivilisten infiziert (GDD 6: "erste Infektionskette"). Seeds 11/22/33: 942/1.906/1.183 Ticks bis Verteidigung.
+- eco.panicRiseFactor(): curfew/martialLaw panicFactor × MORALE.lowMoralePanicFactor (1,5 unter strikeBelow) in population/perception.ts.
+- Offen: Mission.pzX/pzY ist der Ort, nicht die tatsächliche Erscheinungsstelle.
