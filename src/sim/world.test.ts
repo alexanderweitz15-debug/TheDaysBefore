@@ -65,6 +65,17 @@ describe('city world', () => {
     expect(a.hash).not.toBe(c.hash);
   }, 20_000);
 
+  it('the hash covers the id counters of zones and structures', () => {
+    const base = worldHash(new CityWorld(SEED, SMALL));
+    const z = new CityWorld(SEED, SMALL);
+    z.s.zones.nextId++;
+    const st = new CityWorld(SEED, SMALL);
+    st.s.structures.nextId++;
+    expect(worldHash(new CityWorld(SEED, SMALL))).toBe(base);
+    expect(worldHash(z)).not.toBe(base);
+    expect(worldHash(st)).not.toBe(base);
+  });
+
   it('DebugSpawn uses walkable cells only and spreads outwards from full cells', () => {
     const w = new CityWorld(SEED, SMALL);
     // Aim at the middle of a building.

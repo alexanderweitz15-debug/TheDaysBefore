@@ -28,7 +28,7 @@ export function moveFlight(s: SimState, tick: number): number {
   const sdirs = s.safety.dirs;
   const sready = s.safety.ready === 1;
   const { guided, zoneOfCell } = s.zones;
-  const walkable = s.walkable;
+  const walkable = s.civWalk;
   const counts = s.civilianCells;
   const n = s.n;
   const cellM = s.cellM;

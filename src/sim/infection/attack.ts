@@ -4,7 +4,9 @@
 import { HOME_BREAK_IN } from '../../data/agents/civilians';
 import { NOISE } from '../../data/agents/noise';
 import { INFECTION_FIELD } from '../../data/pathogens/viral';
+import { UNIT_BEHAVIOUR } from '../../data/units/present';
 import { ATTACK_REACH_M, CIVILIAN_HP } from '../../data/zombies/viral-types';
+import { damageUnit, infectMember } from '../combat/unit-damage';
 import { TYPE_ATTACK_TICKS, TYPE_DAMAGE } from '../horde/zombie-traits';
 import { isHiding } from '../population/perception';
 import type { SimState } from '../state';
@@ -15,11 +17,18 @@ export function zombieAttacks(s: SimState): void {
   const { cooldown } = s.zt;
   const turn = s.ct.turnTick;
   const reach2 = ATTACK_REACH_M * ATTACK_REACH_M;
+  const ur = ATTACK_REACH_M + UNIT_BEHAVIOUR.squadRadiusM;
+  const unitReach2 = ur * ur;
   for (let i = 0; i < z.highWater; i++) {
     if (!z.alive[i]) continue;
     const cd = cooldown[i] as number;
     if (cd > 0) {
       cooldown[i] = cd - 1;
+      continue;
+    }
+    const ut = s.zt.unitTarget[i] as number;
+    if (ut >= 0) {
+      attackUnit(s, i, ut, unitReach2);
       continue;
     }
     const t = z.target[i] as number;
@@ -51,6 +60,24 @@ export function zombieAttacks(s: SimState): void {
   }
 }
 
+/** Zombie i hits squad u within reach: infects one member with the pathogen's chance, else deals damage. */
+function attackUnit(s: SimState, i: number, u: number, reach2: number): void {
+  const z = s.zombies;
+  const p = s.units.pool;
+  if (!p.alive[u]) {
+    s.zt.unitTarget[i] = -1;
+    return;
+  }
+  const dx = (p.posX[u] as number) - (z.posX[i] as number);
+  const dy = (p.posY[u] as number) - (z.posY[i] as number);
+  if (dx * dx + dy * dy > reach2) return;
+  const type = z.kind[i] as number;
+  s.zt.cooldown[i] = (TYPE_ATTACK_TICKS[type] as number) - 1;
+  s.noise.emit(p.posX[u] as number, p.posY[u] as number, NOISE.attackNoise, NOISE.attackRadiusM);
+  if (s.rng.nextFloat() < s.outbreak.infectChance(s.tick)) infectMember(s, u);
+  damageUnit(s, u, TYPE_DAMAGE[type] as number, true);
+}
+
 /**
  * One hit on civilian j. Returns true if the victim is no longer a target (infected or dead). A trapped victim
  * (hiding at home) does not panic and stays where it is.
@@ -72,17 +99,21 @@ export function hitCivilian(s: SimState, j: number, damage: number, trapped = fa
   return true;
 }
 
-/** Civilian j dies: leaves a corpse that may rise (all victims carry the pathogen). */
-export function killCivilian(s: SimState, j: number): void {
+/**
+ * Civilian j dies: leaves a corpse that may rise (all zombie victims carry the pathogen). With `bitten` false
+ * (own fire), only an already infected victim may rise.
+ */
+export function killCivilian(s: SimState, j: number, bitten = true): void {
   const c = s.civilians;
   const cell = c.cell[j] as number;
+  const carrier = bitten || (s.ct.turnTick[j] as number) >= 0;
   s.corpses.add(
     c.posX[j] as number,
     c.posY[j] as number,
     s.outbreak.familyIndex,
-    s.outbreak.riseTick(s.rng, s.tick),
+    carrier ? s.outbreak.riseTick(s.rng, s.tick) : -1,
   );
-  s.markInfection(cell, INFECTION_FIELD.bite);
+  if (carrier) s.markInfection(cell, INFECTION_FIELD.bite);
   s.counters.civiliansDead++;
   removeCivilian(s, j);
 }

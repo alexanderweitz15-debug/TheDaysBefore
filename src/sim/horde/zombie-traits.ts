@@ -36,17 +36,21 @@ export class ZombieTraits {
   readonly boostUntil: Int32Array;
   /** Screamers: next tick a scream is possible. */
   readonly screamAt: Int32Array;
+  /** Squad slot chased (pool.target holds civilians), -1 none. */
+  readonly unitTarget: Int32Array;
 
   constructor(capacity: number) {
     this.cooldown = new Uint16Array(capacity);
     this.boostUntil = new Int32Array(capacity);
     this.screamAt = new Int32Array(capacity);
+    this.unitTarget = new Int32Array(capacity).fill(-1);
   }
 }
 
 /** Spawns one zombie of `type` on the nearest cell with room around (x, y). Returns the slot or -1. */
 export function spawnZombie(s: SimState, x: number, y: number, type: number): number {
-  if (s.placeAround(s.zombies, s.zombieCells, ZOMBIE_MOVEMENT.maxPerCell, x, y, 1) !== 1) return -1;
+  if (s.placeAround(s.zombies, s.zombieCells, ZOMBIE_MOVEMENT.maxPerCell, x, y, 1, s.zombieWalk) !== 1)
+    return -1;
   const i = s.placed[0] as number;
   initZombie(s, i, type);
   return i;
@@ -58,6 +62,7 @@ export function initZombie(s: SimState, i: number, type: number): void {
   s.zt.cooldown[i] = 0;
   s.zt.boostUntil[i] = 0;
   s.zt.screamAt[i] = 0;
+  s.zt.unitTarget[i] = -1;
 }
 
 /** Removes a zombie (combat from M3 on, tests now). Leaves a corpse that does not rise. */

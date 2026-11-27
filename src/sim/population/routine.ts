@@ -51,6 +51,9 @@ export class CivilianRoutine {
   private readonly solver: CostFieldSolver;
   /** Next field to compute (fields are computed in index order). */
   nextField = 0;
+  private restart = false;
+  /** True from invalidate() until every field is recomputed. */
+  recomputing = false;
 
   constructor(map: CityMapData, walkable: Uint8Array, capacity: number) {
     const n = map.widthCells;
@@ -210,12 +213,26 @@ export class CivilianRoutine {
     return this.nextField >= this.fieldCount && !this.solver.busy;
   }
 
+  /**
+   * Walkability changed: recompute every field from the first one (each field keeps its old directions until its
+   * own job starts). A running job is abandoned.
+   */
+  invalidate(): void {
+    this.nextField = 0;
+    this.restart = true;
+    this.recomputing = true;
+  }
+
   /** Computes destination fields within `budget` work units. */
   advanceFields(budget: number): void {
     let left = budget;
     while (left > 0) {
-      if (!this.solver.busy) {
-        if (this.nextField >= this.fieldCount) return;
+      if (!this.solver.busy || this.restart) {
+        this.restart = false;
+        if (this.nextField >= this.fieldCount) {
+          this.recomputing = false;
+          return;
+        }
         const f = this.nextField;
         this.solver.start(
           this.seeds,
@@ -250,7 +267,13 @@ export class CivilianRoutine {
 
   /** Solver progress, for the world hash (field contents follow from map and progress). */
   progress(): number {
-    return ((this.nextField << 16) ^ this.solver.progress()) >>> 0;
+    return (
+      ((this.nextField << 16) ^
+        this.solver.progress() ^
+        (this.restart ? 0x8000 : 0) ^
+        (this.recomputing ? 0x4000 : 0)) >>>
+      0
+    );
   }
 }
 

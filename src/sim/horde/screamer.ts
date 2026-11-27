@@ -15,7 +15,12 @@ export function screams(s: SimState): void {
   const r2 = r * r;
   const until = tick + SCREAMER.durationS * TICK_RATE;
   for (let i = 0; i < z.highWater; i++) {
-    if (!z.alive[i] || z.kind[i] !== ZT_SCREAMER || (z.target[i] as number) < 0) continue;
+    if (
+      !z.alive[i] ||
+      z.kind[i] !== ZT_SCREAMER ||
+      ((z.target[i] as number) < 0 && (s.zt.unitTarget[i] as number) < 0)
+    )
+      continue;
     if ((screamAt[i] as number) > tick) continue;
     screamAt[i] = tick + SCREAMER.cooldownS * TICK_RATE;
     const x = z.posX[i] as number;

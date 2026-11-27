@@ -20,7 +20,15 @@ export function placeCivilians(s: SimState, x: number, y: number, count: number,
 
 /** Debug spawn of walkers around (x, y). */
 export function placeWalkers(s: SimState, x: number, y: number, count: number): number {
-  const placed = s.placeAround(s.zombies, s.zombieCells, ZOMBIE_MOVEMENT.maxPerCell, x, y, count);
+  const placed = s.placeAround(
+    s.zombies,
+    s.zombieCells,
+    ZOMBIE_MOVEMENT.maxPerCell,
+    x,
+    y,
+    count,
+    s.zombieWalk,
+  );
   for (let k = 0; k < placed; k++) initZombie(s, s.placed[k] as number, ZT_WALKER);
   return placed;
 }

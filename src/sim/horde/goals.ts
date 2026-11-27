@@ -10,6 +10,8 @@ export class ZombieGoals {
   /** Per block: 1 while it is a goal (between goalEnterFrac and goalLeaveFrac of the mean). */
   readonly goalFlag: Uint8Array;
   lastStart = 0;
+  /** Set when walkability changed: the next evaluation restarts the field even with unchanged goals. */
+  forceRestart = false;
 
   constructor(
     n: number,
@@ -64,7 +66,8 @@ export class ZombieGoals {
     sig >>>= 0;
     const age = tick - this.lastStart;
     const changed = sig !== s.flow.activeSignature && (age >= FLOW_FIELD.goalMinIntervalTicks || tick === 0);
-    if (changed || age >= FLOW_FIELD.goalRefreshTicks) {
+    if (changed || age >= FLOW_FIELD.goalRefreshTicks || this.forceRestart) {
+      this.forceRestart = false;
       s.flow.start(this.goalCells, k, sig);
       this.lastStart = tick;
     }

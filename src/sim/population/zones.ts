@@ -13,7 +13,8 @@ export const ZK_CORRIDOR = 2;
 export const ZK_RALLY = 3;
 const KIND_NAMES: ZoneKind[] = ['safeZone', 'safeZone', 'corridor', 'rallyPoint'];
 const MAX = ZONES.maxZones;
-const STRIDE = 2 * ZONES.maxCorridorPoints;
+export const ZONE_STRIDE = 2 * ZONES.maxCorridorPoints;
+const STRIDE = ZONE_STRIDE;
 
 export class Zones {
   readonly kind = new Uint8Array(MAX);

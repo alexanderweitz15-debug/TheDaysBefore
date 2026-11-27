@@ -3,6 +3,7 @@
 import type { Command } from '../core/commands';
 import { createHash, type HashState, hashU32, hashView } from '../core/hash';
 import { TICK_RATE } from '../core/loop';
+import type { StructureView, UnitView } from '../core/types/combat';
 import { CELL_SIZE_M, type CityMapData } from '../core/types/map';
 import type {
   CreateWorld,
@@ -22,9 +23,15 @@ import {
   FLOW_FIELD,
   ZOMBIE_MOVEMENT,
 } from '../data/agents/horde';
+import { STRUCTURE_RULES } from '../data/buildings/defense';
 import { CITY_SIZES } from '../data/city/generator';
 import { PATIENT_ZERO } from '../data/pathogens/viral';
+import { UNITS } from '../data/units/present';
 import { SCREAMER } from '../data/zombies/viral-types';
+import { fireUnits } from './combat/fire';
+import { advanceUnitInfection } from './combat/unit-damage';
+import { applyUnitCommand, moveUnits } from './combat/unit-move';
+import { placeUnit } from './combat/units';
 import type { FlowField } from './horde/flow-field';
 import { ZombieGoals } from './horde/goals';
 import type { AgentPool } from './horde/pool';
@@ -41,6 +48,7 @@ import type { CivilianRoutine } from './population/routine';
 import { moveRoutine, type RoutineParams } from './population/routine-move';
 import { ZK_CORRIDOR, ZK_RALLY, ZK_SAFE } from './population/zones';
 import { SimState } from './state';
+import { detonate, updateStructures } from './structures/structure-system';
 import { findCenterCell, placeCivilians, placeResidents, placeWalkers } from './world-setup';
 
 /** Noise level shown as 255 in the debug field. */
@@ -51,7 +59,6 @@ export class CityWorld implements SimWorld {
   readonly widthM: number;
   readonly heightM: number;
   readonly s: SimState;
-  private readonly goals: ZombieGoals;
   private readonly params: ZombieMoveParams;
   private readonly routineParams: RoutineParams;
   private readonly mapHash: number;
@@ -65,7 +72,9 @@ export class CityWorld implements SimWorld {
     const h = createHash();
     hashCityMap(h, this.map);
     this.mapHash = h.value;
-    this.goals = new ZombieGoals(s.n, findCenterCell(s));
+    if (options.startBudget !== undefined && Number.isFinite(options.startBudget))
+      s.counters.budget = options.startBudget;
+    s.goals = new ZombieGoals(s.n, findCenterCell(s));
     this.params = {
       dt: 1 / TICK_RATE,
       sightM: ZOMBIE_MOVEMENT.sightRangeM,
@@ -78,6 +87,7 @@ export class CityWorld implements SimWorld {
       auraRadiusM: PATIENT_ZERO.auraRadiusM,
       auraBonus: PATIENT_ZERO.auraSpeedBonus,
       screamBonus: SCREAMER.speedBonus,
+      suppression: UNITS.mgTeam.suppression,
     };
     this.routineParams = {
       speedMps: CIVILIAN_MOVEMENT.walkSpeedMps,
@@ -90,7 +100,7 @@ export class CityWorld implements SimWorld {
     };
     placeResidents(s, CITY_SIZES[options.size].population, this.routineParams.dwellMaxTicks);
     // The first field is ready before tick 0.
-    this.goals.evaluate(s, 0);
+    s.goals.evaluate(s, 0);
     s.flow.advance(Number.POSITIVE_INFINITY);
   }
 
@@ -107,7 +117,7 @@ export class CityWorld implements SimWorld {
     return this.s.routine;
   }
   get centerCell(): number {
-    return this.goals.centerCell;
+    return this.s.goals.centerCell;
   }
   get zombieCount(): number {
     return this.s.zombies.count;
@@ -126,6 +136,33 @@ export class CityWorld implements SimWorld {
   }
   zones(): ZoneView[] {
     return this.s.zones.views();
+  }
+  get unitCount(): number {
+    return this.s.units.count;
+  }
+  writeUnits(out: AgentSection): void {
+    this.s.units.write(out);
+  }
+  units(): UnitView[] {
+    return this.s.units.views();
+  }
+  get structuresVersion(): number {
+    return this.s.structures.version;
+  }
+  structures(): StructureView[] {
+    return this.s.structures.views();
+  }
+  get projectileCount(): number {
+    return this.s.projectiles.pool.count;
+  }
+  writeProjectiles(out: AgentSection): void {
+    writeSection(this.s.projectiles.pool, out, null);
+  }
+  get fxCount(): number {
+    return this.s.fx.count;
+  }
+  writeFx(out: Float32Array): void {
+    this.s.fx.drain(out);
   }
 
   applyCommand(cmd: Command): void {
@@ -159,7 +196,20 @@ export class CityWorld implements SimWorld {
       case 'RemoveZone':
         s.zones.remove(s, cmd.payload.id);
         return;
+      case 'PlaceUnit':
+        placeUnit(s, cmd.payload.unitType, cmd.payload.x, cmd.payload.y);
+        return;
+      case 'PlaceStructure':
+        s.structures.place(s, cmd.payload.kind, cmd.payload.points, cmd.payload.rotation);
+        return;
+      case 'DemolishStructure':
+        s.structures.demolish(s, cmd.payload.id, s.tick);
+        return;
+      case 'DetonateCharge':
+        detonate(s, cmd.payload.id);
+        return;
       default:
+        applyUnitCommand(s, cmd);
         return;
     }
   }
@@ -169,15 +219,17 @@ export class CityWorld implements SimWorld {
     s.tick = tick;
     perceive(s, tick);
     s.noise.decay(tick);
-    if (!s.flow.busy && tick % ENGINE.goalEvalInterval === 0) this.goals.evaluate(s, tick);
+    if (!s.flow.busy && tick % ENGINE.goalEvalInterval === 0) s.goals.evaluate(s, tick);
     s.flow.advance(FLOW_FIELD.maxCellsPerTick);
-    s.routine.advanceFields(CIVILIAN_ROUTINE.fieldCellsPerTick);
+    s.routine.advanceFields(
+      s.routine.recomputing ? STRUCTURE_RULES.routineRepathCellsPerTick : CIVILIAN_ROUTINE.fieldCellsPerTick,
+    );
     s.safety.update(s, tick, SAFETY_FIELD.cellsPerTick);
     let moved = moveRoutine(
       s.routine,
       s.civilians,
       s.civilianCells,
-      s.walkable,
+      s.civWalk,
       s.rng,
       this.routineParams,
       CELL_SIZE_M,
@@ -188,12 +240,22 @@ export class CityWorld implements SimWorld {
       s.civilianHash.buildCounts();
       s.civiliansDirty = false;
     }
+    if (s.units.count > 0 || s.unitsDirty) {
+      s.unitHash.build(s.units.pool);
+      s.unitHash.buildCounts();
+      s.unitsDirty = false;
+    }
     s.zombieBuckets.build(s.zombies);
+    // Density from the same positions as the buckets, so combat can skip empty coarse cells consistently.
+    s.density.build(s.zombies);
     moveZombies(s, this.params, tick);
+    moveUnits(s, tick);
     screams(s);
+    fireUnits(s, tick);
     zombieAttacks(s);
     advanceInfection(s);
-    s.density.build(s.zombies);
+    advanceUnitInfection(s);
+    updateStructures(s, tick);
     s.zones.publish(tick);
   }
 
@@ -230,8 +292,18 @@ export class CityWorld implements SimWorld {
     hashU32(h, s.flow.progress());
     hashU32(h, s.flow.currentDistance);
     hashU32(h, s.flow.activeSignature);
-    hashView(h, this.goals.goalFlag);
-    hashU32(h, this.goals.lastStart);
+    hashView(h, s.goals.goalFlag);
+    hashU32(h, s.goals.lastStart);
+    hashU32(h, s.goals.forceRestart ? 1 : 0);
+    hashView(h, s.zt.unitTarget.subarray(0, zhw));
+    for (const v of [c.collateralKills, c.soldiersLost, c.budget]) hashU32(h, v);
+    for (const a of s.units.hashArrays()) hashView(h, a);
+    for (const v of s.planner.hashValues()) hashU32(h, v);
+    for (const a of s.projectiles.hashArrays()) hashView(h, a);
+    for (const a of s.structures.hashArrays()) hashView(h, a);
+    for (const v of s.structures.hashValues()) hashU32(h, v);
+    for (const a of [s.walkable, s.civWalk, s.zombieWalk, s.structAt, s.slowAt, s.suppressUntil])
+      hashView(h, a);
     const r = s.routine;
     const chw = s.civilians.highWater;
     for (const a of [r.home, r.work, r.market, r.dest, r.timer]) hashView(h, a.subarray(0, chw));

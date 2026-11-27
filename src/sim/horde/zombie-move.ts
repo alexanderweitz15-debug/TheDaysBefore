@@ -19,6 +19,39 @@ export interface ZombieMoveParams {
   readonly auraRadiusM: number;
   readonly auraBonus: number;
   readonly screamBonus: number;
+  /** Speed loss in MG-suppressed cells. */
+  readonly suppression: number;
+}
+
+/** Nearest squad within sight, or -1. */
+function findUnit(s: SimState, x: number, y: number, sight: number): number {
+  const h = s.unitHash;
+  const x0 = h.coord(x - sight);
+  const x1 = h.coord(x + sight);
+  const y0 = h.coord(y - sight);
+  const y1 = h.coord(y + sight);
+  if (h.windowCount(x0, y0, x1, y1) === 0) return -1;
+  const { posX, posY, alive } = s.units.pool;
+  let best = -1;
+  let bestD = sight * sight;
+  for (let gy = y0; gy <= y1; gy++) {
+    for (let gx = x0; gx <= x1; gx++) {
+      const c = gy * h.side + gx;
+      const end = h.start[c + 1] as number;
+      for (let k = h.start[c] as number; k < end; k++) {
+        const j = h.items[k] as number;
+        if (!alive[j]) continue;
+        const dx = (posX[j] as number) - x;
+        const dy = (posY[j] as number) - y;
+        const d = dx * dx + dy * dy;
+        if (d < bestD || (d === bestD && j < best)) {
+          bestD = d;
+          best = j;
+        }
+      }
+    }
+  }
+  return best;
 }
 
 function findTarget(s: SimState, x: number, y: number, sight: number): number {
@@ -64,7 +97,11 @@ export function moveZombies(s: SimState, p: ZombieMoveParams, tick: number): voi
   const pzY = pz >= 0 ? (posY[pz] as number) : 0;
   const aura2 = pz >= 0 ? p.auraRadiusM * p.auraRadiusM : -1;
   const civ = s.civilians;
-  const { n, cellM, walkable, zombieCells, flow, rng } = s;
+  const { n, cellM, zombieCells, flow, rng, slowAt, suppressUntil } = s;
+  const walkable = s.zombieWalk;
+  const unitTarget = s.zt.unitTarget;
+  const up = s.units.pool;
+  const hasUnits = up.count > 0;
   const zb = s.zombieBuckets;
   const bStart = zb.start;
   const bItems = zb.items;
@@ -84,18 +121,38 @@ export function moveZombies(s: SimState, p: ZombieMoveParams, tick: number): voi
 
     // Rule 1: nearest human in sight (scan staggered over slots, keep the target in between).
     let t = target[i] as number;
-    if ((i + tick) % p.targetScanInterval === 0) t = findTarget(s, x, y, p.sightM);
-    else if (t >= 0) {
+    let ut = unitTarget[i] as number;
+    if ((i + tick) % p.targetScanInterval === 0) {
+      t = findTarget(s, x, y, p.sightM);
+      ut = hasUnits ? findUnit(s, x, y, p.sightM) : -1;
+      // Squads and civilians are both humans: chase the nearer one.
+      if (ut >= 0 && t >= 0) {
+        const cx = (civ.posX[t] as number) - x;
+        const cy = (civ.posY[t] as number) - y;
+        const ux = (up.posX[ut] as number) - x;
+        const uy = (up.posY[ut] as number) - y;
+        if (ux * ux + uy * uy <= cx * cx + cy * cy) t = -1;
+        else ut = -1;
+      }
+    } else if (t >= 0) {
       const dx = (civ.posX[t] as number) - x;
       const dy = (civ.posY[t] as number) - y;
       if (!civ.alive[t] || (turnTick[t] as number) >= 0 || dx * dx + dy * dy > sight2) t = -1;
+    } else if (ut >= 0) {
+      const dx = (up.posX[ut] as number) - x;
+      const dy = (up.posY[ut] as number) - y;
+      if (!up.alive[ut] || dx * dx + dy * dy > sight2) ut = -1;
     }
     target[i] = t;
+    unitTarget[i] = ut;
 
     // Desired direction: target, else flow field (rules 2/3), else keep heading.
     let dx = 0;
     let dy = 0;
-    if (t >= 0) {
+    if (ut >= 0) {
+      dx = (up.posX[ut] as number) - x;
+      dy = (up.posY[ut] as number) - y;
+    } else if (t >= 0) {
       dx = (civ.posX[t] as number) - x;
       dy = (civ.posY[t] as number) - y;
     } else {
@@ -178,6 +235,9 @@ export function moveZombies(s: SimState, p: ZombieMoveParams, tick: number): voi
       if (ax * ax + ay * ay <= aura2) speed *= 1 + p.auraBonus;
     }
     if ((boostUntil[i] as number) > tick) speed *= 1 + p.screamBonus;
+    // Wire and MG suppression (GDD 9).
+    speed *= 1 - (slowAt[c0] as number);
+    if ((suppressUntil[c0] as number) > tick) speed *= 1 - p.suppression;
     let vx = (dx + sx * p.separationWeight) * speed;
     let vy = (dy + sy * p.separationWeight) * speed;
     len = Math.sqrt(vx * vx + vy * vy);

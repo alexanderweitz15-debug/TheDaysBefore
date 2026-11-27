@@ -73,6 +73,11 @@ export class SafetyField {
     return this.solver.busy || this.costCursor >= 0;
   }
 
+  /** Walkability changed: restart with the current goals once the running job is done. */
+  invalidate(): void {
+    this.jobVersion = -1;
+  }
+
   /** Starts or advances the field within `budget` work units. */
   update(s: SimState, tick: number, budget: number): void {
     const solver = this.solver;
