@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { STRUCTURES } from '../../data/buildings/defense';
-import { ECONOMY_BUILDINGS, PHASES, POPULATION, STRUCTURE_MATERIAL } from '../../data/economy/economy';
+import {
+  ECONOMY_BUILDINGS,
+  PHASES,
+  POPULATION,
+  START_RESOURCES,
+  STRUCTURE_MATERIAL,
+} from '../../data/economy/economy';
 import { ECONOMY_M3, UNITS } from '../../data/units/present';
 import { spawnZombie, ZT_WALKER } from '../horde/zombie-traits';
 import { CityWorld } from '../world';
@@ -194,7 +200,27 @@ describe('economy: income and purchases', () => {
     expect(w.structures()).toHaveLength(n);
   });
 
-  it('squads take their ammo from the stock and refill only at a depot or the HQ, from the stock', () => {
+  it('buying 12 squads (4 infantry, 1 MG, ...) leaves the ammo stock untouched', () => {
+    const w = missionWorld({ startResources: { budget: 6000, ammo: START_RESOURCES.ammo } });
+    const s = w.s;
+    const e = s.eco;
+    const n = s.n;
+    let c = s.cellOf(e.hqX, e.hqY);
+    while (!s.walkable[c]) c++;
+    const at = { x: ((c % n) + 0.5) * s.cellM, y: (Math.floor(c / n) + 0.5) * s.cellM };
+    const types = ['infantry', 'infantry', 'infantry', 'infantry', 'mgTeam'] as const;
+    for (let k = 0; k < 12; k++) {
+      send(w, {
+        playerId: 0,
+        type: 'PlaceUnit',
+        payload: { unitType: types[k % types.length] ?? 'infantry', ...at },
+      });
+    }
+    expect(w.unitCount).toBe(12);
+    expect(e.amount[R.ammo]).toBe(START_RESOURCES.ammo);
+  });
+
+  it('purchase includes the full loadout without touching the stock; refill at depot/HQ draws from the stock', () => {
     const w = missionWorld({ startResources: { budget: 100_000, ammo: 100 } });
     const s = w.s;
     const e = s.eco;
@@ -210,8 +236,8 @@ describe('economy: income and purchases', () => {
     let u = 0;
     while (!s.units.pool.alive[u]) u++;
     expect(w.unitCount).toBe(1);
-    expect(s.units.ammo[u]).toBe(Math.min(100, UNITS.infantry.ammo));
-    expect(e.amount[R.ammo]).toBe(Math.max(0, 100 - UNITS.infantry.ammo));
+    expect(s.units.ammo[u]).toBe(UNITS.infantry.ammo);
+    expect(e.amount[R.ammo]).toBe(100);
     s.units.ammo[u] = 0;
     e.amount[R.ammo] = 50;
     run(w, 40);

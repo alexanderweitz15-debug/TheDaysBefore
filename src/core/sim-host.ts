@@ -28,10 +28,17 @@ export class SimHost {
     this.loop = new FixedStepLoop(() => this.runTick());
   }
 
-  /** Accepts a command for the next tick to run. */
+  /**
+   * Accepts a command for the next tick to run. While paused the loop runs no ticks, so the game speed is
+   * applied immediately (it never changes world state; the logged copy re-applies it at its tick on replay).
+   * Other commands given during pause wait for the next tick, as GDD 14 intends ("commands in pause").
+   * Surrender while paused runs one tick so the mission can end and the debrief appears.
+   */
   submit(input: CommandInput): Command {
     const cmd = { ...input, tick: this.tick } as Command;
     this.queue.push(cmd);
+    if (cmd.type === 'SetGameSpeed') this.loop.speed = cmd.payload.speed;
+    else if (cmd.type === 'Surrender' && this.loop.speed <= 0) this.runTick();
     return cmd;
   }
 

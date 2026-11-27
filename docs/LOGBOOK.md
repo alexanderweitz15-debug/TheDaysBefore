@@ -181,3 +181,9 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 12:13 | M5 | qa-review | AUFTRAG | Frischer Agent: m5b-Kontrollarm, m5-acceptance auf Aufträge, M5b scharf, Gesamtlauf | tests/ | -
 2026-11-27 12:23 | M5 | qa-review | REVIEW | M5b-Tests scharf (8/8), m5-acceptance auf HoldZone/DefendLine, Bench combat-medium mit Aufträgen; 357 grün | tests/ bench/run.ts | bestanden
 2026-11-27 12:23 | M5 | hauptagent | ABNAHME | M5b Auftragssystem im Browser gegen echte Sim geprüft (Kauf in Reserve, Linie verteidigen aktiv); Befund: Startmunition reicht für ~2 Trupps | - | bestanden, Balance offen
+2026-11-27 12:26 | M5 | hauptagent | COMMIT | M5b Auftragssystem auf main, CI grün | - | d6f5bb3
+2026-11-27 12:26 | M5 | sim-engine | AUFTRAG | Munition beim Kauf: Erstausstattung im Preis statt aus dem Lager | src/sim/ src/data/ | -
+2026-11-27 12:26 | M5 | qa-review | AUFTRAG | M5-Abschluss: Tutorial-Durchlauf per Playwright ohne Hilfe, Mission bis Sieg/Niederlage, Abnahmetabelle | tests/ docs/progress/M5.md | -
+2026-11-27 12:29 | M5 | sim-engine | FIX | Erstausstattung Munition im Kaufpreis, Lager nur zum Nachfüllen; Freimodus bitgleich | src/sim/combat/units.ts src/sim/economy/economy.test.ts | fast 318 grün; gen-medium +11 % Rauschen
+2026-11-27 13:21 | M5 | qa-review | REVIEW | Abnahme-Durchlauf NICHT bestanden: B1 Pause endgültig, B2 Tutorial L1 hängt, B3 Autopause beim Ausbruch; diverse Hänger ohne Vorwissen; Speichern/Laden bestanden | docs/progress/M5.md | nicht bestanden
+2026-11-27 13:21 | M5 | hauptagent | FIX | B1: SetGameSpeed wirkt sofort auch in der Pause, Aufgeben in der Pause läuft einen Tick | src/core/sim-host.ts | core 114 grün

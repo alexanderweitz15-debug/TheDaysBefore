@@ -301,8 +301,8 @@ export function placeUnit(s: SimState, type: UnitTypeId, x: number, y: number, p
   p.cell[u] = c;
   p.hp[u] = spec.size * spec.hpPerMember;
   U.members[u] = spec.size;
-  // Missions: the squad's ammo comes from the global stock (free mode: full).
-  U.ammo[u] = s.eco.drawAmmo(spec.ammo);
+  // Initial loadout is part of the price; the global stock only feeds resupply (depot/HQ).
+  U.ammo[u] = spec.ammo;
   U.stance[u] = ST_HOLD;
   U.fireMode[u] = FM_FREE;
   U.morale[u] = 1;
