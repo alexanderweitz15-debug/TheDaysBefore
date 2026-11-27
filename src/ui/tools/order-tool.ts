@@ -6,6 +6,7 @@ import type { CommandSink, SimView } from '../../core/types/app';
 import {
   DEFAULT_ORDER_STANCE,
   GARRISON_PREVIEW,
+  ORDER_DEFAULT_SHARE,
   ORDER_MIN_LINE_M,
   ORDER_MIN_ZONE_M,
   type OrderTool,
@@ -32,13 +33,18 @@ export function hqPosition(sim: SimView): { x: number; y: number } {
   return { x: (sim.curr?.widthM ?? 0) / 2, y: (sim.curr?.heightM ?? 0) / 2 };
 }
 
-/** Starts an order: opens the dialog with one squad of the first type the reserve can give. */
+/** Starts an order: opens the dialog with half the reserve (rounded up) of every type it holds. */
 export function armOrder(sim: SimView, kind: OrderTool): void {
   cancelTool();
-  const first = ORDERABLE.find((u) => (sim.reserve.idle[u] ?? 0) > 0);
+  const squads: Partial<Record<UnitTypeId, number>> = {};
+  for (const u of ORDERABLE) {
+    const idle = sim.reserve.idle[u] ?? 0;
+    if (idle > 0) squads[u] = Math.ceil(idle * ORDER_DEFAULT_SHARE);
+  }
+  const first = Object.keys(squads).length > 0;
   orderDraft.value = {
     kind,
-    squads: first ? { [first]: 1 } : {},
+    squads,
     stance: DEFAULT_ORDER_STANCE,
   };
   activeTool.value = kind;

@@ -56,3 +56,11 @@
 - Neu: data/game.ts, scenarios/kaltenbach.ts, scenarios/skirmish.ts, data/tutorial/ (Lektion 1 + 2, unlosable), ui/saves.ts, ui/game-flow.ts, ui/command-tap.ts, ui/audio/audio.ts, ui/tutorial/ (Controller, Overlay, Fortschritt), ui/hud/objectives.tsx, ui/screens/ (Pausenmenü, Speicherstände, Auswertung/debrief.tsx mit KEYS_COMPLETE), ui/settings/key-bindings.tsx. Settings-Store generisch, Panel mit 5 Reitern (Spiel, Grafik, Audio, Steuerung, Oberfläche).
 - Feste Keys aus core outcome.ts (score.*, moment.*, cause.*). K/Z/V/P frei belegbar (toolCorridor, toolSafeZone, toolRally, population).
 - Offen: Autopause nur beim Phasenwechsel; Musik/Funk-Regler, Tag-Länge, Bot-Bericht, Kodex in der Auswertung fehlen (spätere Meilensteine).
+
+## Nachtrag M5 Abnahme-Fixes
+- Tutorial-Marker: ui-Id mit Bindestrich am Ende = Präfix-Match (z. B. order-stance-); Marker { none: true } für Schritte ohne Element.
+- hud/pause-banner.tsx zeigt die Pause (Quelle sim.stats.speed; Core sendet seit dem Fix auch in der Pause einen Snapshot nach SetGameSpeed).
+- Autopause über settings.autopause (localStorage sperrzone.settings, JSON).
+- order-tool.armOrder: Standardstärke ORDER_DEFAULT_SHARE (0,5, aufgerundet) je Typ in der Reserve; OrderList rückt bei offenem Seitenfenster nach rechts (.sz-orders--shifted).
+- Linien-Bauwerke: Senden bei mindestens einem freien Sample, Vorschau-Kosten nur freie Teilstücke; i18n tool.build.lineBlocked, linePartial, lineShort, hud.paused.
+- Offen: Budget-Trend (SHOW_BUDGET_TREND=false, braucht Einkommen ohne Einmalkäufe von der Sim), Hinweisfeld verdeckt Kartenmitte.

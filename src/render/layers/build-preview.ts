@@ -135,11 +135,10 @@ export class PreviewLayer {
         return;
       }
       const len = Math.hypot(cx - startX, cy - startY);
-      const cost = spec.cost * len;
       const w = Math.max(spec.sizeM, STRUCTURE_MIN_PX * px);
       const n = Math.max(1, Math.ceil(len / PREVIEW_SAMPLE_M));
       let allOk = len >= MIN_LINE_LENGTH_M;
-      let terrainOk = true;
+      let free = 0;
       // Runs of equal validity share one path so a blocked stretch shows red inside a green line.
       for (const pass of [true, false]) {
         let open = false;
@@ -147,7 +146,7 @@ export class PreviewLayer {
           const x = startX + ((cx - startX) * i) / n;
           const y = startY + ((cy - startY) * i) / n;
           const ok = placeable(sim.map, x, y);
-          if (pass && !ok) terrainOk = false;
+          if (pass && ok) free++;
           if (ok === pass) {
             if (!open) {
               g.moveTo(x, y);
@@ -165,11 +164,13 @@ export class PreviewLayer {
           alpha: PREVIEW_FILL_ALPHA + PREVIEW_LINE_BOOST,
         });
       }
-      allOk = allOk && terrainOk;
+      // The sim builds only the free stretches and charges only those.
+      const cost = spec.cost * len * (free / (n + 1));
+      allOk = allOk && free > 0;
       const ok = allOk && budget >= cost;
       const color = ok ? palette.preview.ok : palette.preview.bad;
       if (!ok) this.cross(cx, cy, 6 * px, px, color);
-      this.setLabel(this.costText(cost, len, budget, terrainOk), zoom, cx, cy, color);
+      this.setLabel(this.costText(cost, len, budget, free > 0), zoom, cx, cy, color);
       return;
     }
     const half = Math.max(spec.sizeM / 2, STRUCTURE_MIN_PX * 2 * px);

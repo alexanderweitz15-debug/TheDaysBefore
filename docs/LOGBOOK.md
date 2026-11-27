@@ -187,3 +187,8 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 12:29 | M5 | sim-engine | FIX | Erstausstattung Munition im Kaufpreis, Lager nur zum Nachfüllen; Freimodus bitgleich | src/sim/combat/units.ts src/sim/economy/economy.test.ts | fast 318 grün; gen-medium +11 % Rauschen
 2026-11-27 13:21 | M5 | qa-review | REVIEW | Abnahme-Durchlauf NICHT bestanden: B1 Pause endgültig, B2 Tutorial L1 hängt, B3 Autopause beim Ausbruch; diverse Hänger ohne Vorwissen; Speichern/Laden bestanden | docs/progress/M5.md | nicht bestanden
 2026-11-27 13:21 | M5 | hauptagent | FIX | B1: SetGameSpeed wirkt sofort auch in der Pause, Aufgeben in der Pause läuft einen Tick | src/core/sim-host.ts | core 114 grün
+2026-11-27 13:21 | M5 | gameplay-ui | AUFTRAG | Befunde Durchlauf: Tutorial L1, Autopause, Marker L2, Texte, Auftragsdialog-Standard, Verdeckung, Budget-Trend, Rückmeldung Ablehnung | src/ui/ src/data/ | -
+2026-11-27 13:21 | M5 | sim-engine | AUFTRAG | Linien-Bauwerke über Straßen: begehbare Teilstücke bauen statt ablehnen | src/sim/structures/ | -
+2026-11-27 13:26 | M5 | sim-engine | FIX | Linien-Bauwerke über Gebäude: nur freie Teilstücke gebaut und bezahlt | src/sim/structures/structures.ts | fast 320 grün, freie Linien bitgleich
+2026-11-27 13:36 | M5 | gameplay-ui | FIX | Tutorial-Texte/Marker, Pause-Banner, Auftragsdialog halbe Reserve, Auftragsliste nicht verdeckt, Linien mit Teilstücken und Rückmeldung, Budget-Trend vorerst aus | src/ui/ src/data/ src/render/layers/build-preview.ts | Biome/tsc grün
+2026-11-27 13:36 | M5 | hauptagent | FIX | Worker sendet nach SetGameSpeed und in der Pause sofort einen Snapshot (UI sah die Pause nicht) | src/core/worker.ts | -

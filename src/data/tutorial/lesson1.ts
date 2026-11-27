@@ -30,7 +30,7 @@ export const LESSON_1: Lesson = {
     {
       id: 'camera',
       text: 'tutorial.l1.camera',
-      marker: { ui: 'minimap' },
+      marker: { none: true },
       done: { kind: 'all', of: [{ kind: 'cameraMoved' }, { kind: 'zoomed' }] },
     },
     {
@@ -54,7 +54,7 @@ export const LESSON_1: Lesson = {
     {
       id: 'stance',
       text: 'tutorial.l1.stance',
-      marker: { ui: 'order-list' },
+      marker: { ui: 'order-stance-' },
       done: { kind: 'command', command: 'UpdateOrder' },
     },
     {

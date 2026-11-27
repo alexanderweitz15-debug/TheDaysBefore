@@ -15,6 +15,7 @@ import { Minimap } from './hud/minimap';
 import { OrderDialog } from './hud/order-dialog';
 import { OrderList } from './hud/order-list';
 import { LoadingHint, OverlayBadge } from './hud/overlay-status';
+import { PauseBanner } from './hud/pause-banner';
 import { PerfOverlay } from './hud/perf-overlay';
 import { Situation } from './hud/situation';
 import { ToolHint } from './hud/status-hud';
@@ -132,6 +133,7 @@ function App({ deps: rawDeps }: { deps: UiDeps }) {
           <OrderList sim={deps.sim} commands={deps.commands} />
           <OrderDialog sim={deps.sim} />
           <ToolHint />
+          <PauseBanner sim={deps.sim} />
         </>
       )}
       <LoadingHint sim={deps.sim} />

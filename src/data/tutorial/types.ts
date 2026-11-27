@@ -17,7 +17,7 @@ export type Condition =
   | { kind: 'structureCount'; structure: string; min: number }
   | { kind: 'all'; of: readonly Condition[] };
 
-/** Where the hint points: a UI element by data-tutorial-id or a map area (fractions of the world size). */
+/** Where the hint points: a UI element by data-tutorial-id (trailing dash = prefix match) or a map area (fractions of the world size). */
 export type Marker = { ui: string } | { area: { x: number; y: number; r: number } } | { none: true };
 
 /** Actions executed once when a step starts. */

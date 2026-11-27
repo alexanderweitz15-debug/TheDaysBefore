@@ -1,6 +1,9 @@
 // HUD values for the economy windows and the top bar (GDD 6, 14). Display only.
 import type { ResourceId } from '../core/commands';
 
+/** Budget trend arrow: perMin currently includes one-off purchases (sim), so it is hidden until it is income only. */
+export const SHOW_BUDGET_TREND = false;
+
 export const RESOURCE_ORDER: readonly ResourceId[] = [
   'budget',
   'material',

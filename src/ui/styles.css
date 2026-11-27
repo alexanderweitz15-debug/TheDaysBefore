@@ -1383,3 +1383,21 @@ fieldset.sz-context__group {
 .sz-cmd__label {
   overflow-wrap: anywhere;
 }
+
+/* Order list moves right of the open side window instead of hiding */
+.sz-orders--shifted {
+  left: 26rem;
+}
+
+/* Pause banner */
+.sz-pause-banner {
+  position: absolute;
+  left: 50%;
+  top: 3.9rem;
+  transform: translateX(-50%);
+  padding: 0.25rem 1rem;
+  font-size: 0.875rem;
+  border-color: var(--sz-accent);
+  z-index: 4;
+  pointer-events: none;
+}

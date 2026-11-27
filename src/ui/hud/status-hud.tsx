@@ -20,6 +20,12 @@ export function ToolHint() {
     );
   }
   // Order tools show their hint inside the order dialog.
+  if (tool === 'none' && notice)
+    return (
+      <div class="sz-panel sz-tool-hint" role="status" data-tutorial-id="tool-hint">
+        {t(notice)}
+      </div>
+    );
   if (tool === 'none' || tool === 'defendLine' || tool === 'holdZone' || tool === 'occupyBuilding')
     return null;
   return (

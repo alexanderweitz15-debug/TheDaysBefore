@@ -179,6 +179,10 @@ export const en: Record<MessageKey, string> = {
   'tool.build.cost': 'Cost {cost} ({length} m)',
   'tool.build.costPoint': 'Cost {cost}',
   'tool.build.blocked': 'Cannot be placed here',
+  'tool.build.lineBlocked': 'The line runs over buildings or water. Drag it across an open street.',
+  'tool.build.linePartial': 'Parts of the line run over buildings or water and stay open.',
+  'tool.build.lineShort': 'The line is too short. Drag further.',
+  'hud.paused': 'Paused – press Space to resume',
   'tool.build.budget': 'Not enough budget',
   'tool.attackArea': 'Area fire: click a target, Esc cancels.',
   'attack.estimate': 'about {count} civilians affected',
@@ -601,26 +605,31 @@ export const en: Record<MessageKey, string> = {
   'tutorial.l1.title': 'Lesson 1: First Line',
   'tutorial.l1.goal': 'Bring 200 civilians into the safe zone.',
   'tutorial.l1.camera':
-    'Instructor here. Move the camera with WASD and zoom with the mouse wheel. The map is not going anywhere.',
+    'Trainer here. Move the camera with W, A, S, D and zoom with the mouse wheel. The minimap at the bottom right shows where you are.',
   'tutorial.l1.placeUnit': 'Buy infantry in the command bar. The squad waits in the reserve at headquarters.',
-  'tutorial.l1.stance': 'The order list on the left sets strength and stance. Pick a stance, hold stays put.',
+  'tutorial.l1.stance':
+    'Click the stance of the order in the order list on the left to change it. Hold stays put, aggressive advances.',
   'tutorial.l1.tabOrders': 'Open the Orders tab. You do not steer single squads, you give orders.',
   'tutorial.l1.defendLine':
     'Pick Defend line and drag a line across the street. Squads from the reserve spread out on their own.',
-  'tutorial.l1.wall': 'Open the Defense tab and drag a wall. Walls stop zombies as long as they stand.',
-  'tutorial.l1.gate': 'Build a gate in the wall. Civilians need a way through.',
+  'tutorial.l1.wall':
+    'In the Defense tab pick the wall and drag it across a street with the mouse button held. Engineers build it, zombies cannot pass.',
+  'tutorial.l1.gate': 'Pick the gate and click the finished wall. Civilians can pass at that spot.',
   'tutorial.l1.safeZone':
-    'Pick the safe zone in the Civil tab and drag it behind the wall. The rescued gather there.',
+    'In the Civil tab pick the safe zone and drag it on the side of the wall that zombies do not come from. The rescued gather there.',
   'tutorial.l1.pause': 'Pause with the space bar or the pause button. You can give orders while paused.',
   'tutorial.l1.speed': 'Set the speed to 2x. Time is short, and so is patience.',
   'tutorial.l1.outbreak': 'The outbreak begins. Hold the line.',
   'tutorial.l1.rescue': 'Bring 200 civilians into the safe zone. Track progress under Objectives.',
   'tutorial.l2.title': 'Lesson 2: Calm Before the Storm',
   'tutorial.l2.goal': 'Build the economy, then repel a small outbreak.',
-  'tutorial.l2.resources': 'Open the Economy window. Resources are listed at the top; red means scarce.',
-  'tutorial.l2.repurpose': 'Repurpose a city building by clicking it. A depot never hurts.',
-  'tutorial.l2.population': 'Open Population and assign workers. People who work do not starve.',
-  'tutorial.l2.morale': 'Check morale and open the Decrees. Bad mood costs labor.',
+  'tutorial.l2.resources':
+    'Open the Economy window with the icon right of the tabs. Resources are at the top left; red means scarce.',
+  'tutorial.l2.repurpose':
+    'With the Economy window open, click a city building on the map and repurpose it. Only buildings in the harbor district offer a depot.',
+  'tutorial.l2.population':
+    'Open Population (key P) and move the workers slider. People who work do not starve.',
+  'tutorial.l2.morale': 'Bad mood costs labor. Open the Decrees with the icon right of Population.',
   'tutorial.l2.countdown':
     'Watch the countdown and set the speed to 2x. Warning signs announce the outbreak.',
   'tutorial.l2.defend': 'Buy units, give orders and build defenses before the countdown ends.',

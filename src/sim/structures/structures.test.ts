@@ -90,6 +90,60 @@ describe('placement', () => {
     expect(w.structures().length).toBe(before);
   });
 
+  it('lines across buildings build only their free stretches, paid by length; fully blocked lines are refused', () => {
+    const w = emptyWorld(10_000);
+    const s = w.s;
+    const n = s.n;
+    const cm = s.cellM;
+    // A street cell between two building cells on one row: house wall to house wall.
+    let st = -1;
+    for (let c = 2 * n; c < s.cells - 2 * n && st < 0; c++)
+      if (
+        s.map.terrain[c - 1] === TERRAIN.building &&
+        s.map.terrain[c + 2] === TERRAIN.building &&
+        s.walkable[c] &&
+        s.walkable[c + 1] &&
+        c % n > 2
+      )
+        st = c;
+    expect(st).toBeGreaterThan(0);
+    const y = (Math.floor(st / n) + 0.5) * cm;
+    const x0 = ((st % n) - 0.5) * cm;
+    const x1 = ((st % n) + 2.5) * cm;
+    place(w, 'wall', [x0, y, x1, y]);
+    const ids = slots(w);
+    expect(ids.length).toBe(1);
+    const S = s.structures;
+    const i = ids[0] as number;
+    expect([...S.cellsOf(i)].sort()).toEqual([st, st + 1]);
+    expect(S.lengthM[i]).toBeCloseTo(2 * cm, 3);
+    expect(w.counters.budget).toBeCloseTo(10_000 - STRUCTURES.wall.cost * 2 * cm, 3);
+    // Entirely inside a building: nothing placed, nothing paid.
+    const b = w.counters.budget;
+    place(w, 'barricade', [x0 - 0.4 * cm, y, x0 + 0.4 * cm, y]);
+    expect(slots(w).length).toBe(1);
+    expect(w.counters.budget).toBe(b);
+  });
+
+  it('a building in the middle of a segment splits it into two runs', () => {
+    const w = emptyWorld(10_000);
+    const s = w.s;
+    const n = s.n;
+    const cm = s.cellM;
+    let b = -1;
+    for (let c = 2 * n; c < s.cells - 2 * n && b < 0; c++)
+      if (s.map.terrain[c] === TERRAIN.building && s.walkable[c - 1] && s.walkable[c + 1] && c % n > 2) b = c;
+    expect(b).toBeGreaterThan(0);
+    const y = (Math.floor(b / n) + 0.5) * cm;
+    const x = ((b % n) + 0.5) * cm;
+    place(w, 'wire', [x - cm, y, x + cm, y]);
+    const ids = slots(w);
+    expect(ids.length).toBe(2);
+    const cells = ids.flatMap((i) => [...s.structures.cellsOf(i)]).sort((p, q) => p - q);
+    expect(cells).toEqual([b - 1, b + 1]);
+    expect(s.structAt[b]).toBe(-1);
+  });
+
   it('lines rasterize 4-connected (no diagonal gaps)', () => {
     const w = emptyWorld();
     const s = w.s;

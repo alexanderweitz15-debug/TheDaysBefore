@@ -66,6 +66,8 @@ export class Structures {
   readonly depotRadius = STRUCTURE_RULES.depotRadiusM;
   /** Scratch for rasterizing (cells.ts). */
   readonly tmp = new Int32Array(MAX_CELLS * 4);
+  /** Raster of a whole line edge (placeBlockedEdge). */
+  private lineTmp = new Int32Array(0);
 
   count(): number {
     let k = 0;
@@ -97,7 +99,7 @@ export class Structures {
     return i;
   }
 
-  /** PlaceStructure (refused if any point is off the map). Returns the number of structures created (lines: segments). */
+  /** PlaceStructure (refused if any point is off the map; lines build only their free stretches). Returns the number of structures created (lines: segments). */
   place(s: SimState, kind: StructureKind, pts: readonly number[], rotation: number): number {
     const k = SK[kind];
     if (k === undefined || !Array.isArray(pts) || pts.length < 2) return 0;
@@ -109,11 +111,18 @@ export class Structures {
     if (spec.line) {
       let made = 0;
       const seg = STRUCTURE_RULES.segmentM;
+      const firstId = this.nextId;
       for (let p = 0; p + 3 < pts.length; p += 2) {
         const ax = pts[p] as number;
         const ay = pts[p + 1] as number;
         const bx = pts[p + 2] as number;
         const by = pts[p + 3] as number;
+        if (!this.edgeClear(s, ax, ay, bx, by, firstId)) {
+          const r = this.placeBlockedEdge(s, k, ax, ay, bx, by);
+          if (r < 0) return made - r - 1;
+          made += r;
+          continue;
+        }
         const len = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
         const parts = Math.max(1, Math.ceil(len / seg));
         for (let q = 0; q < parts; q++) {
@@ -142,9 +151,8 @@ export class Structures {
 
   /** One line segment; returns 1 placed, 0 skipped (no free cell), -1 out of budget or slots. */
   private placeSegment(s: SimState, k: number, ax: number, ay: number, bx: number, by: number): number {
-    const spec = SPEC[k] as (typeof SPEC)[number];
     const lenM = Math.max(s.cellM, Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)));
-    const cost = s.eco.quote(k, spec.cost, lenM);
+    s.eco.quote(k, (SPEC[k] as (typeof SPEC)[number]).cost, lenM);
     if (!s.eco.canPayQuote(s.counters.budget)) return -1;
     const m = rasterLine(s, ax, ay, bx, by, this.tmp);
     let free = 0;
@@ -153,6 +161,99 @@ export class Structures {
       if (this.canClaim(s, c) && free < MAX_CELLS) this.tmp[free++] = c;
     }
     if (free === 0) return 0;
+    return this.placeRun(s, k, ax, ay, bx, by, free);
+  }
+
+  /**
+   * Line edge crossing buildings, water or other structures: rasterized as a whole, each run of free cells is
+   * built in pieces of at most segmentM, paid by its own length only; the obstacles close the gaps.
+   * Returns structures placed, or -(placed + 1) when out of budget or slots.
+   */
+  private placeBlockedEdge(s: SimState, k: number, ax: number, ay: number, bx: number, by: number): number {
+    const raster = this.edgeRaster(s);
+    const m = rasterLine(s, ax, ay, bx, by, raster);
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const len = Math.sqrt(len2);
+    const pad = len > 0 ? s.cellM / 2 / len : 0;
+    const chunk = Math.max(
+      1,
+      Math.min(MAX_CELLS, Math.floor((STRUCTURE_RULES.segmentM * m) / Math.max(len, s.cellM))),
+    );
+    let made = 0;
+    let q = 0;
+    while (q < m) {
+      if (!this.canClaim(s, raster[q] as number)) {
+        q++;
+        continue;
+      }
+      let r = 0;
+      while (q < m && r < chunk && this.canClaim(s, raster[q] as number))
+        this.tmp[r++] = raster[q++] as number;
+      // Piece ends: projections of its first and last cell centers onto the edge, widened by half a cell.
+      let t0 = 0;
+      let t1 = 1;
+      if (len2 > 0) {
+        t0 = Math.max(0, this.along(s, this.tmp[0] as number, ax, ay, dx, dy, len2) - pad);
+        t1 = Math.min(1, this.along(s, this.tmp[r - 1] as number, ax, ay, dx, dy, len2) + pad);
+      }
+      if (this.placeRun(s, k, ax + dx * t0, ay + dy * t0, ax + dx * t1, ay + dy * t1, r) < 0)
+        return -(made + 1);
+      made++;
+    }
+    return made;
+  }
+
+  /** Projection parameter of cell c's center onto the edge (ax, ay) + t (dx, dy). */
+  private along(
+    s: SimState,
+    c: number,
+    ax: number,
+    ay: number,
+    dx: number,
+    dy: number,
+    len2: number,
+  ): number {
+    const n = s.n;
+    const cx = ((c % n) + 0.5) * s.cellM;
+    const cy = (Math.floor(c / n) + 0.5) * s.cellM;
+    return ((cx - ax) * dx + (cy - ay) * dy) / len2;
+  }
+
+  /** True if every raster cell of the edge is walkable terrain and not taken by an older structure. */
+  private edgeClear(s: SimState, ax: number, ay: number, bx: number, by: number, firstId: number): boolean {
+    const raster = this.edgeRaster(s);
+    const m = rasterLine(s, ax, ay, bx, by, raster);
+    for (let q = 0; q < m; q++) {
+      const c = raster[q] as number;
+      if (!s.terrainWalk[c]) return false;
+      const o = s.structAt[c] as number;
+      if (o >= 0 && (this.id[o] as number) < firstId) return false;
+    }
+    return true;
+  }
+
+  /** Scratch for whole line edges (up to 2n cells), sized on first use. */
+  private edgeRaster(s: SimState): Int32Array {
+    if (this.lineTmp.length < 2 * s.n + 2) this.lineTmp = new Int32Array(2 * s.n + 2);
+    return this.lineTmp;
+  }
+
+  /** One structure from the free cells tmp[0..m) spanning (ax, ay)-(bx, by); 1 placed, -1 out of budget or slots. */
+  private placeRun(
+    s: SimState,
+    k: number,
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+    m: number,
+  ): number {
+    const spec = SPEC[k] as (typeof SPEC)[number];
+    const lenM = Math.max(s.cellM, Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay)));
+    const cost = s.eco.quote(k, spec.cost, lenM);
+    if (!s.eco.canPayQuote(s.counters.budget)) return -1;
     const i = this.alloc();
     if (i < 0) return -1;
     s.counters.budget -= s.eco.payQuote();
@@ -163,7 +264,7 @@ export class Structures {
     this.maxHp[i] = spec.hp * lenM;
     this.hp[i] = this.maxHp[i] as number;
     this.buildS[i] = spec.buildS * lenM;
-    claimCells(s, this, i, free);
+    claimCells(s, this, i, Math.min(m, MAX_CELLS));
     this.version++;
     return 1;
   }

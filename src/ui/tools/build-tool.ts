@@ -7,15 +7,17 @@ import { MIN_LINE_LENGTH_M, ROTATE_STEP } from '../../data/hud';
 import { PREVIEW_SAMPLE_M } from '../../data/render-combat';
 import { placeable } from '../../render/layers/build-preview';
 import { activeTool, buildArm, buildState, screenToWorld, toolDraft } from '../../render/view-state';
-import { cancelTool } from './zone-tools';
+import { cancelTool, notify } from './zone-tools';
 
 const LOCAL_PLAYER = 0;
 
-function lineFree(sim: SimView, a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+/** Share of free samples along a line; the sim builds the free parts of a partly blocked line. */
+function lineFreeShare(sim: SimView, a: { x: number; y: number }, b: { x: number; y: number }): number {
   const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / PREVIEW_SAMPLE_M));
+  let free = 0;
   for (let i = 0; i <= n; i++)
-    if (!placeable(sim.map, a.x + ((b.x - a.x) * i) / n, a.y + ((b.y - a.y) * i) / n)) return false;
-  return true;
+    if (placeable(sim.map, a.x + ((b.x - a.x) * i) / n, a.y + ((b.y - a.y) * i) / n)) free++;
+  return free / (n + 1);
 }
 
 export function installBuildTool(sim: SimView, commands: CommandSink): () => void {
@@ -28,8 +30,12 @@ export function installBuildTool(sim: SimView, commands: CommandSink): () => voi
     if (!a || e.button !== 0 || !onCanvas(e)) return;
     const p = screenToWorld(e.clientX, e.clientY);
     // Invalid ground (off map, water, building): no command, the red preview is the hint.
-    if (!placeable(sim.map, p.x, p.y)) return;
     const spec = STRUCTURES[a.structure as StructureKind];
+    // Lines may start on blocked ground: the sim builds the free stretches only.
+    if (!spec.line && !placeable(sim.map, p.x, p.y)) {
+      notify('tool.build.blocked');
+      return;
+    }
     if (spec.line) {
       lineStart = p;
       toolDraft.startX = p.x;
@@ -50,7 +56,14 @@ export function installBuildTool(sim: SimView, commands: CommandSink): () => voi
     const s = lineStart;
     lineStart = null;
     toolDraft.startX = Number.NaN;
-    if (Math.hypot(p.x - s.x, p.y - s.y) >= MIN_LINE_LENGTH_M && lineFree(sim, s, p)) {
+    if (Math.hypot(p.x - s.x, p.y - s.y) < MIN_LINE_LENGTH_M) {
+      notify('tool.build.lineShort');
+      return;
+    }
+    const share = lineFreeShare(sim, s, p);
+    if (share <= 0) notify('tool.build.lineBlocked');
+    else {
+      if (share < 1) notify('tool.build.linePartial');
       commands.submit({
         playerId: LOCAL_PLAYER,
         type: 'PlaceStructure',

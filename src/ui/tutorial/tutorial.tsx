@@ -116,7 +116,9 @@ export function installTutorial(sim: SimView, commands: CommandSink): () => void
 
 function markerRect(marker: Lesson['steps'][number]['marker'], sim: SimView): DOMRect | null {
   if ('ui' in marker) {
-    const el = document.querySelector(`[data-tutorial-id="${marker.ui}"]`);
+    // A trailing dash marks an id prefix (ids with a running number).
+    const sel = marker.ui.endsWith('-') ? '^=' : '=';
+    const el = document.querySelector(`[data-tutorial-id${sel}"${marker.ui}"]`);
     return el ? el.getBoundingClientRect() : null;
   }
   if ('area' in marker) {

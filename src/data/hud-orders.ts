@@ -5,6 +5,8 @@ export const ORDER_TOOLS = ['defendLine', 'holdZone', 'occupyBuilding'] as const
 export type OrderTool = (typeof ORDER_TOOLS)[number];
 export const ORDER_STANCES: readonly Stance[] = ['hold', 'holdUntilLosses', 'aggressive'];
 export const DEFAULT_ORDER_STANCE: Stance = 'hold';
+/** New order dialog: share of each reserve type requested by default. */
+export const ORDER_DEFAULT_SHARE = 0.5;
 /** Minimum drawn size of an order shape, meters. */
 export const ORDER_MIN_LINE_M = 8;
 export const ORDER_MIN_ZONE_M = 10;

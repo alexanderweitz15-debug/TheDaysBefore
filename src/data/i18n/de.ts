@@ -179,6 +179,11 @@ export const de = {
   'tool.build.cost': 'Kosten {cost} ({length} m)',
   'tool.build.costPoint': 'Kosten {cost}',
   'tool.build.blocked': 'Hier nicht platzierbar',
+  'tool.build.lineBlocked':
+    'Die Linie liegt auf Gebäuden oder Wasser. Ziehe sie quer über eine freie Straße.',
+  'tool.build.linePartial': 'Teile der Linie liegen auf Gebäuden oder Wasser und bleiben frei.',
+  'tool.build.lineShort': 'Die Linie ist zu kurz. Ziehe länger.',
+  'hud.paused': 'Pausiert – Leertaste zum Fortsetzen',
   'tool.build.budget': 'Budget reicht nicht',
   'tool.attackArea': 'Flächenfeuer: Ziel anklicken, Esc bricht ab.',
   'attack.estimate': 'etwa {count} Zivilisten betroffen',
@@ -604,20 +609,21 @@ export const de = {
   'tutorial.l1.title': 'Lektion 1: Erste Linie',
   'tutorial.l1.goal': '200 Zivilisten in die Schutzzone bringen.',
   'tutorial.l1.camera':
-    'Ausbilder hier. Bewege die Kamera mit WASD und zoome mit dem Mausrad. Die Karte läuft nicht weg.',
+    'Ausbilder hier. Bewege die Kamera mit W, A, S, D und zoome mit dem Mausrad. Die Minikarte unten rechts zeigt, wo du bist.',
   'tutorial.l1.placeUnit':
     'Kaufe in der Befehlsleiste Infanterie. Der Trupp wartet in der Reserve am Hauptquartier.',
   'tutorial.l1.stance':
-    'In der Auftragsliste links stellst du Stärke und Haltung ein. Wähle eine Haltung, Halten bleibt stehen.',
+    'Klicke in der Auftragsliste links auf die Haltung des Auftrags, um sie zu wechseln. Halten bleibt stehen, Angriff rückt vor.',
   'tutorial.l1.tabOrders':
     'Öffne den Reiter Aufträge. Du steuerst keine einzelnen Trupps, du gibst Aufträge.',
   'tutorial.l1.defendLine':
     'Wähle Linie verteidigen und ziehe eine Linie über die Straße. Die Trupps aus der Reserve verteilen sich selbst.',
   'tutorial.l1.wall':
-    'Öffne den Reiter Verteidigung und ziehe eine Mauer. Mauern halten Zombies auf, solange sie stehen.',
-  'tutorial.l1.gate': 'Baue ein Tor in die Mauer. Zivilisten brauchen einen Weg hindurch.',
+    'Wähle im Reiter Verteidigung die Mauer und ziehe sie mit gedrückter Maustaste quer über eine Straße. Pioniere bauen sie, Zombies kommen nicht hindurch.',
+  'tutorial.l1.gate':
+    'Wähle das Tor und klicke auf die fertige Mauer. An dieser Stelle können Zivilisten hindurch.',
   'tutorial.l1.safeZone':
-    'Wähle im Reiter Zivil die Schutzzone und ziehe sie hinter der Mauer auf. Dort sammeln sich die Geretteten.',
+    'Wähle im Reiter Zivil die Schutzzone und ziehe sie auf der Seite der Mauer auf, von der keine Zombies kommen. Dort sammeln sich die Geretteten.',
   'tutorial.l1.pause':
     'Pausiere mit der Leertaste oder dem Pause-Knopf. Befehle geben geht auch in der Pause.',
   'tutorial.l1.speed': 'Stelle das Tempo auf 2x. Zeit ist knapp, Geduld auch.',
@@ -625,10 +631,14 @@ export const de = {
   'tutorial.l1.rescue': 'Bringe 200 Zivilisten in die Schutzzone. Verfolge den Fortschritt unter Ziele.',
   'tutorial.l2.title': 'Lektion 2: Ruhe vor dem Sturm',
   'tutorial.l2.goal': 'Wirtschaft aufbauen, dann einen kleinen Ausbruch abwehren.',
-  'tutorial.l2.resources': 'Öffne das Wirtschaftsfenster. Oben stehen die Ressourcen, rot heißt knapp.',
-  'tutorial.l2.repurpose': 'Widme ein Stadtgebäude um und klicke es an. Ein Lager schadet nie.',
-  'tutorial.l2.population': 'Öffne die Bevölkerung und weise Arbeiter zu. Wer arbeitet, hungert nicht.',
-  'tutorial.l2.morale': 'Schau auf die Moral und öffne die Erlasse. Schlechte Stimmung kostet Arbeitskraft.',
+  'tutorial.l2.resources':
+    'Öffne das Wirtschaftsfenster mit dem Symbol rechts neben den Reitern. Oben links stehen die Ressourcen, rot heißt knapp.',
+  'tutorial.l2.repurpose':
+    'Klicke im Wirtschaftsfenster ein Stadtgebäude auf der Karte an und widme es um. Ein Lager gibt es nur bei Gebäuden im Hafenviertel.',
+  'tutorial.l2.population':
+    'Öffne die Bevölkerung (Taste P) und schiebe den Regler für Arbeiter. Wer arbeitet, hungert nicht.',
+  'tutorial.l2.morale':
+    'Schlechte Stimmung kostet Arbeitskraft. Öffne die Erlasse mit dem Symbol rechts neben der Bevölkerung.',
   'tutorial.l2.countdown':
     'Beobachte den Countdown und stelle das Tempo auf 2x. Warnzeichen kündigen den Ausbruch an.',
   'tutorial.l2.defend': 'Kaufe Einheiten, gib Aufträge und baue Verteidigung, bevor der Countdown abläuft.',

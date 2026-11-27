@@ -270,7 +270,10 @@ scope.onmessage = (ev: MessageEvent<ToWorker>) => {
       break;
     }
     case 'command':
-      host?.submit(msg.cmd);
+      if (!host) break;
+      host.submit(msg.cmd);
+      // While paused no tick runs and pump sends nothing: publish speed changes (and a surrender tick) now.
+      if (msg.cmd.type === 'SetGameSpeed' || host.loop.speed <= 0) sendSnapshot(host);
       break;
     case 'returnBuffer':
       if (pool.length < POOL_MAX) pool.push(msg.buffer);

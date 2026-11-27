@@ -28,7 +28,7 @@ export const LESSON_2: Lesson = {
     {
       id: 'resources',
       text: 'tutorial.l2.resources',
-      marker: { ui: 'hud-resources' },
+      marker: { ui: 'cmd-win-economy' },
       done: { kind: 'panel', panel: 'economy' },
     },
     {
@@ -46,7 +46,7 @@ export const LESSON_2: Lesson = {
     {
       id: 'morale',
       text: 'tutorial.l2.morale',
-      marker: { ui: 'hud-morale' },
+      marker: { ui: 'cmd-win-decrees' },
       done: { kind: 'panel', panel: 'decrees' },
     },
     {

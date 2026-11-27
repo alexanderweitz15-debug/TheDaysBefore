@@ -35,7 +35,7 @@ function center(o: OrderView): { x: number; y: number } {
 
 export function OrderList({ sim, commands }: { sim: SimView; commands: CommandSink }) {
   usePoll();
-  if (sidePanel.value) return null;
+  const shifted = sidePanel.value !== null;
   const orders = sim.orders;
   const collapsed = ordersCollapsed.value;
   const update = (o: OrderView, squads: OrderView['requested'], stance: Stance): void =>
@@ -46,7 +46,11 @@ export function OrderList({ sim, commands }: { sim: SimView; commands: CommandSi
     });
   const typeOf = new Map(sim.units.map((u) => [u.id, u.type] as const));
   return (
-    <aside class="sz-panel sz-orders" data-tutorial-id="order-list" aria-label={t('orders.title')}>
+    <aside
+      class={`sz-panel sz-orders${shifted ? ' sz-orders--shifted' : ''}`}
+      data-tutorial-id="order-list"
+      aria-label={t('orders.title')}
+    >
       <button
         type="button"
         class="sz-orders__head"

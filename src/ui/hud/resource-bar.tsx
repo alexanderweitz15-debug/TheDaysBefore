@@ -2,7 +2,13 @@
 import type { ResourceId } from '../../core/commands';
 import type { ResourceView } from '../../core/types/mission';
 import { RELEVANT_ONLY_RESOURCES } from '../../data/hud';
-import { CRIT_FRACTION, RESOURCE_ORDER, UNLIMITED_CAPACITY, WARN_FRACTION } from '../../data/hud-economy';
+import {
+  CRIT_FRACTION,
+  RESOURCE_ORDER,
+  SHOW_BUDGET_TREND,
+  UNLIMITED_CAPACITY,
+  WARN_FRACTION,
+} from '../../data/hud-economy';
 import { ResourceIcon } from '../components/icons';
 import { numberLocale, t } from '../i18n';
 
@@ -32,7 +38,7 @@ export function ResourceBar({ resources }: { resources: Record<ResourceId, Resou
         const r = resources[id];
         if (!r) return null;
         const level = levelOf(id, r);
-        const trend = Math.round(r.perMin);
+        const trend = id === 'budget' && !SHOW_BUDGET_TREND ? 0 : Math.round(r.perMin);
         // Power and research only appear once they matter.
         if (isRelevantOnly(id) && level === 'ok' && Math.round(r.amount) === 0 && trend === 0) return null;
         const cap =
