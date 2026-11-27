@@ -79,3 +79,10 @@ graph.ts: Brückenstücke enden exakt an Uferpunkten (4 m Überstand nur beim Ma
 - Ursachen-Parameter: hqOverrun {zombies, squads}; wallLost, noAntiArmor {zombies, colossi, antiArmor}; lateOutbreakResponse {squads}; zoneBreached {pct}; ammoOut keine. Neue Keys (core): Ursachen populationLost, timeLimit, collateral, lowMorale; Momente ammoOut, firstSoldierLost.
 - Spielstand mittel (30.700 Zombies, 19.200 Zivilisten): 2,76 MiB roh, 1,17 MiB gzip; Speichern 121 ms, Laden ~0,7 s; Zivilisten-Felder werden beim Laden neu berechnet.
 - Leistung Freimodus: 9,2/11,4 ms (30k/10k), Missionsmodus + 0,67 ms alle 20 Ticks, + 0,5 ms alle 200 Ticks.
+
+## Nachtrag M5b (Auftragssystem)
+- Neu: src/data/orders.ts (garrisonCapacity(floors, footprintCells) = floors × cells / 14, 1..6, Sim und UI), src/sim/orders/ (orders.ts, order-system.ts, garrison.ts, orders.test.ts, 16 Tests). Geändert: combat/(units, unit-move, unit-damage, fire, targeting, line), state.ts, world.ts, world-hash.ts, infection/attack.ts, structures/structure-system.ts.
+- PlaceUnit spawnt am HQ (Missionsmodus) bzw. an der Position (Freimodus), immer idle in der Reserve. Zuteilung nächster Trupp zuerst, Ersatz bei Verlusten; holdUntilLosses verlässt bei 50 % und wird ersetzt.
+- DefendLine: Posten 3 m hinter der Linie, Feindseite = mehr Zombies, sonst weg vom HQ/Kartenmitte, alle 2 s neu. HoldZone: höchste Gebäude zuerst, Rest auf Straßenposten, säubert Zone (aggressiv: Zone + Reichweite). OccupyBuilding: nicht beißbar, halber Schaden, +3 m Sicht je Stockwerk, schießt aus dem Gebäude; Integrität sinkt unter Druck, bei 0 Rauswurf mit 25 % Schaden, Auftrag lost. Reserve verteidigt HQ in 80 m.
+- Offen: Integrität regeneriert nicht; MoveUnits-Trupps verlassen Auftrag und zählen nicht als Reserve.
+- Leistung: 200 Trupps in 22 Aufträgen + 31k Zombies 11,5/15,1 ms; updateOrders 0,03 ms.

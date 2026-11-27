@@ -168,3 +168,16 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-27 07:16 | M5 | gameplay-ui | FERTIG | B3 HUD-Überarbeitung: Ressourcen-Chips, großer Countdown, Lage-Karte mit Zielen, Befehlsleiste mit Symbolen, Leistungsanzeige aus, neue Keys in i18n | src/ui/hud/ src/ui/styles.css src/data/ | tsc grün, 1280/1600/1920 geprüft; ein Test im ersten Lauf rot (instabil?)
 2026-11-27 07:16 | M5 | hauptagent | FEHLER | Möglicher instabiler Test (3 Fehler in einer Datei im ersten Lauf, zweiter Lauf grün) – Untersuchung durch qa-review | - | -
 2026-11-27 11:15 | M5 | hauptagent | FIX | Mensch hatte wip nach main gemergt (PR 1), Deploy scheiterte an Format; main stand wieder auf M4. Arbeitsstand formatiert, alle Tests grün, als M5-Zwischenstand nach main | - | fast 303, slow 29 grün
+2026-11-27 11:19 | M5 | hauptagent | COMMIT | M5-Zwischenstand auf main (neue Oberfläche, Sieg/Speichern), CI grün; Sicherungs-Branch heißt jetzt backup-nicht-mergen | - | bc00bb9
+2026-11-27 11:44 | M5 | hauptagent | ENTSCHEIDUNG | Mensch: kein RTS, nur Aufträge; Umbau vor M5-Abschluss | docs/DECISIONS.md docs/PROPOSALS.md | -
+2026-11-27 11:44 | M5 | hauptagent | PLAN | Plan M5b Auftragssystem, Schnittstellen orders.ts und Befehle DefendLine/HoldZone/OccupyBuilding/UpdateOrder/CancelOrder | docs/plans/M5b.md src/core/ | -
+2026-11-27 11:44 | M5 | sim-engine | AUFTRAG | M5b-A Auftragssystem: Reserve, Zuteilung, Linie, Zone, Gebäudebesatzung (frischer Agent) | src/sim/ src/data/orders.ts | -
+2026-11-27 11:44 | M5 | gameplay-ui | AUFTRAG | M5b-B Auftragswerkzeuge, Auftragsliste, Reserve, besetzte Gebäude, Auswahl entfernen, Tutorial 1 umschreiben, B3-Nacharbeit | src/ui/ src/render/ src/data/ | -
+2026-11-27 11:44 | M5 | qa-review | AUFTRAG | Instabilen Test finden, M5-Abnahme scharf, M5b-Tests vorbereiten | tests/ | -
+2026-11-27 11:53 | M5 | gameplay-ui | FERTIG | M5b-B Auftrags-UI (Reserve-Kauf, Reiter Aufträge, Stärke-Dialog, Auftragsliste, Karte), Auswahl/RTS entfernt, Tutorial 1 umgeschrieben, B3-Nacharbeit | src/ui/ src/render/ src/data/ | tsc/Biome grün, nur im Harness geprüft
+2026-11-27 11:53 | M5 | qa-review | REVIEW | Instabiler Test = Zeitlimit unter Last (m5-acceptance Bevölkerungs-Niederlage), kein Nicht-Determinismus; M5-Abnahme scharf (11 Tests), M5b-Tests vorbereitet; Balance: Trupps verfolgen nicht | tests/ docs/progress/M5.md | 332 grün in 4 Läufen
+2026-11-27 11:53 | M5 | hauptagent | FIX | m5-acceptance ins slow-Projekt | vitest.config.ts | -
+2026-11-27 12:13 | M5 | sim-engine | FERTIG | M5b-A Auftragssystem: Reserve, Zuteilung/Ersatz, Linie, Zone mit Säubern, Gebäudebesatzung mit Integrität, HQ-Verteidigung | src/sim/orders/ src/data/orders.ts | 349 grün, check ohne Fehler, Bench im Ziel
+2026-11-27 12:13 | M5 | qa-review | AUFTRAG | Frischer Agent: m5b-Kontrollarm, m5-acceptance auf Aufträge, M5b scharf, Gesamtlauf | tests/ | -
+2026-11-27 12:23 | M5 | qa-review | REVIEW | M5b-Tests scharf (8/8), m5-acceptance auf HoldZone/DefendLine, Bench combat-medium mit Aufträgen; 357 grün | tests/ bench/run.ts | bestanden
+2026-11-27 12:23 | M5 | hauptagent | ABNAHME | M5b Auftragssystem im Browser gegen echte Sim geprüft (Kauf in Reserve, Linie verteidigen aktiv); Befund: Startmunition reicht für ~2 Trupps | - | bestanden, Balance offen
