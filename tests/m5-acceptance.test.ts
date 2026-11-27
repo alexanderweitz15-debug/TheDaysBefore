@@ -1,6 +1,6 @@
 // M5 acceptance (GDD 10, 4, 17): replay hash, save/load bit identity, victory and defeat conditions.
 import { describe, expect, it } from 'vitest';
-import type { Command } from '../src/core/commands';
+import type { Command, SquadRequest, Stance } from '../src/core/commands';
 import { hashHex } from '../src/core/hash';
 import { SimHost } from '../src/core/sim-host';
 import { DISTRICTS, TERRAIN } from '../src/core/types/map';
@@ -84,8 +84,28 @@ function script(world: SimWorld): Command[] {
       x1: (a as { x: number }).x + 20,
       y1: (a as { y: number }).y + 20,
     }),
+    // PlaceUnit buys into the reserve; the orders send the squads out (zone, line), so the replay covers them.
     at(200, 'PlaceUnit', { unitType: 'infantry', x: (b as { x: number }).x, y: (b as { y: number }).y }),
-    at(210, 'PlaceUnit', { unitType: 'mgTeam', x: (c as { x: number }).x + 6, y: (c as { y: number }).y }),
+    at(210, 'PlaceUnit', { unitType: 'mgTeam', x: (c as { x: number }).x, y: (c as { y: number }).y }),
+    at(215, 'PlaceUnit', { unitType: 'infantry', x: (c as { x: number }).x, y: (c as { y: number }).y }),
+    at(220, 'HoldZone', {
+      x0: (b as { x: number }).x - 25,
+      y0: (b as { y: number }).y - 25,
+      x1: (b as { x: number }).x + 25,
+      y1: (b as { y: number }).y + 25,
+      squads: { infantry: 1, mgTeam: 1 },
+      stance: 'hold',
+    }),
+    at(230, 'DefendLine', {
+      points: [
+        (c as { x: number }).x - 15,
+        (c as { y: number }).y,
+        (c as { x: number }).x + 15,
+        (c as { y: number }).y,
+      ],
+      squads: { infantry: 1 },
+      stance: 'holdUntilLosses',
+    }),
     at(300, 'PlaceStructure', {
       kind: 'watchtower',
       points: [(d as { x: number }).x, (d as { y: number }).y],
@@ -146,6 +166,7 @@ describe('M5 replay and save', { timeout: 120_000 }, () => {
     const a = newHost(def);
     const cmds = script(a.world);
     playAll(a, cmds, SAVE_AT);
+    expect(a.world.orders().orders.length, 'orders are part of the saved state').toBe(2);
     const t0 = performance.now();
     const state = a.world.serialize();
     const saveMs = performance.now() - t0;
@@ -201,24 +222,39 @@ function roadNear(world: SimWorld, x: number, y: number): { x: number; y: number
   return { x, y };
 }
 
+/** Zone around patient zero held by the ring defence. */
+const ZONE_HALF_M = 60;
+const ZONE_STANCE: Stance = 'hold';
+
 const cmd = (tick: number, type: Command['type'], payload: unknown): Command =>
   ({ tick, playerId: 0, type, payload }) as Command;
 
 /**
- * Patient zero in the middle of the city, ringed by 16 squads (35 and 55 m out). With `horde` extra zombies are
- * dropped 10 m from patient zero, inside the squads' reach. Calibrated on seed 31337 small: 30 zombies are
- * eradicated at tick ~560; 60 or more already leave stragglers out of range that spread unnoticed (see M5.md).
+ * Patient zero in the middle of the city, ringed by `squads` squads. PlaceUnit only buys into the reserve at the
+ * HQ (M5b), so one HoldZone order over the centre sends them out. With `horde` extra zombies are dropped 10 m from
+ * patient zero, inside the zone. Calibrated on seed 31337 small: see M5.md for the eradication reach limits.
  */
 function ringDefence(world: SimWorld, squads: number, horde: number): Command[] {
   const c = roadNear(world, world.widthM / 2, world.heightM / 2);
   const types = ['infantry', 'mgTeam', 'sniperTeam', 'infantry'] as const;
   const out: Command[] = [];
+  const request: SquadRequest = {};
   for (let i = 0; i < squads; i++) {
-    const a = (i / squads) * Math.PI * 2;
-    const r = 35 + (i % 2) * 20;
-    const p = roadNear(world, c.x + Math.cos(a) * r, c.y + Math.sin(a) * r);
-    out.push(cmd(5, 'PlaceUnit', { unitType: types[i % 4], x: p.x, y: p.y }));
+    const type = types[i % 4] as (typeof types)[number];
+    out.push(cmd(5, 'PlaceUnit', { unitType: type, x: c.x, y: c.y }));
+    request[type] = (request[type] ?? 0) + 1;
   }
+  if (squads > 0)
+    out.push(
+      cmd(6, 'HoldZone', {
+        x0: c.x - ZONE_HALF_M,
+        y0: c.y - ZONE_HALF_M,
+        x1: c.x + ZONE_HALF_M,
+        y1: c.y + ZONE_HALF_M,
+        squads: request,
+        stance: ZONE_STANCE,
+      }),
+    );
   out.push(cmd(30, 'StartOutbreak', { x: c.x, y: c.y, family: 'viral' }));
   if (horde > 0) out.push(cmd(40, 'DebugSpawn', { x: c.x + 10, y: c.y, count: horde, kind: 'zombie' }));
   return out;

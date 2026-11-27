@@ -2,7 +2,7 @@
 // `pnpm bench --update` rewrites the reference. A missing reference (or scenario) is created.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { Command } from '../src/core/commands';
+import type { Command, SquadRequest } from '../src/core/commands';
 import { SimHost } from '../src/core/sim-host';
 import type { CityMapData } from '../src/core/types/map';
 import { TERRAIN } from '../src/core/types/map';
@@ -154,14 +154,28 @@ function combatCommands(): Command[] {
       payload: { unitType: UNIT_MIX[i % UNIT_MIX.length] as (typeof UNIT_MIX)[number], x, y },
     });
   }
-  for (const [a, b] of streetWalls(COMBAT_WALLS)) {
+  // PlaceUnit only buys into the reserve (M5b): each wall gets a DefendLine that draws its share of the squads.
+  const walls = streetWalls(COMBAT_WALLS);
+  const requests: SquadRequest[] = walls.map(() => ({}));
+  for (let i = 0; i < COMBAT_UNITS; i++) {
+    const type = UNIT_MIX[i % UNIT_MIX.length] as (typeof UNIT_MIX)[number];
+    const req = requests[i % walls.length] as SquadRequest;
+    req[type] = (req[type] ?? 0) + 1;
+  }
+  walls.forEach(([a, b], i) => {
     cmds.push({
       tick: 0,
       playerId: 0,
       type: 'PlaceStructure',
       payload: { kind: 'wall', points: [a.x, a.y, b.x, b.y], rotation: 0 },
     });
-  }
+    cmds.push({
+      tick: 1,
+      playerId: 0,
+      type: 'DefendLine',
+      payload: { points: [a.x, a.y, b.x, b.y], squads: requests[i] as SquadRequest, stance: 'hold' },
+    });
+  });
   return cmds;
 }
 
@@ -223,6 +237,12 @@ const SCENARIOS: Scenario[] = [
         errors.push(
           `expected at least ${COMBAT_MIN_UNITS} squads, got ${w.unitCount} (budget ${w.counters.budget})`,
         );
+      const orders = w.orders().orders;
+      const posted = orders.reduce((n, o) => n + o.assigned.length, 0);
+      if (orders.length < COMBAT_WALLS)
+        errors.push(`expected ${COMBAT_WALLS} line orders, got ${orders.length}`);
+      if (posted < COMBAT_MIN_UNITS)
+        errors.push(`expected at least ${COMBAT_MIN_UNITS} squads on orders, got ${posted}`);
       if (w.structures().length < COMBAT_WALLS * (WALL_LENGTH_M / SEGMENT_M))
         errors.push(
           `expected ${COMBAT_WALLS * (WALL_LENGTH_M / SEGMENT_M)} wall segments, got ${w.structures().length}`,

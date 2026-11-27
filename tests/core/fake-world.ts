@@ -5,6 +5,7 @@ import { createRng, type Rng } from '../../src/core/rng';
 import type { StructureView, UnitView } from '../../src/core/types/combat';
 import { type CityMapData, NONE_U8 } from '../../src/core/types/map';
 import type { MissionView, ResourceView } from '../../src/core/types/mission';
+import type { GarrisonView, OrderView, ReserveView } from '../../src/core/types/orders';
 import type { DebriefData } from '../../src/core/types/outcome';
 import type {
   DebugField,
@@ -172,6 +173,18 @@ export class FakeWorld implements SimWorld {
 
   mission(): MissionView {
     return this.missionView;
+  }
+
+  ordersVersion = 0;
+  /** No orders by default; tests may fill these to exercise the UI and worker paths (bump ordersVersion). */
+  orderState: { orders: OrderView[]; reserve: ReserveView; garrisons: GarrisonView[] } = {
+    orders: [],
+    reserve: { idle: {}, returning: 0 },
+    garrisons: [],
+  };
+
+  orders(): { orders: OrderView[]; reserve: ReserveView; garrisons: GarrisonView[] } {
+    return this.orderState;
   }
 
   /** Set by tests that exercise the debrief path; the fake never ends a mission by itself. */

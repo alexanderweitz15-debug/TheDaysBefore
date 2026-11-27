@@ -7,6 +7,7 @@ const SLOW = [
   'tests/m2-acceptance.test.ts',
   'tests/m3-acceptance.test.ts',
   'tests/determinism.test.ts',
+  'tests/m5-acceptance.test.ts',
 ];
 
 export default defineConfig({
