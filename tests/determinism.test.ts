@@ -108,10 +108,14 @@ describe('determinism (GDD section 4)', () => {
     SLOW,
   );
 
-  it('SetGameSpeed commands do not change the world state', () => {
-    const speeds = [speed(5, 2), speed(100, 0), speed(101, 4), speed(2000, 1)];
-    const plain = runHeadless(createWorld, SEED, OPTIONS, 1500, SPAWNS);
-    const withSpeed = runHeadless(createWorld, SEED, OPTIONS, 1500, [...SPAWNS, ...speeds]);
-    expect(withSpeed.hash).toBe(plain.hash);
-  });
+  it(
+    'SetGameSpeed commands do not change the world state',
+    () => {
+      const speeds = [speed(5, 2), speed(100, 0), speed(101, 4), speed(2000, 1)];
+      const plain = runHeadless(createWorld, SEED, OPTIONS, 1500, SPAWNS);
+      const withSpeed = runHeadless(createWorld, SEED, OPTIONS, 1500, [...SPAWNS, ...speeds]);
+      expect(withSpeed.hash).toBe(plain.hash);
+    },
+    SLOW,
+  );
 });

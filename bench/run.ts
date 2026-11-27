@@ -4,6 +4,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Command } from '../src/core/commands';
 import { SimHost } from '../src/core/sim-host';
+import type { CityMapData } from '../src/core/types/map';
+import { TERRAIN } from '../src/core/types/map';
 import type { SimWorld, WorldOptions } from '../src/core/types/sim';
 import { CITY_SIZES } from '../src/data/city/generator';
 import { createWorld } from '../src/sim/world';
@@ -70,6 +72,99 @@ function spawnBursts(total: number, burst: number, kind: 'zombie' | 'civilian', 
   return cmds;
 }
 
+const COMBAT_UNITS = 200;
+const COMBAT_WALLS = 20;
+const WALL_LENGTH_M = 40;
+/** Lines are split into segments of this length (structures() lists segments). */
+const SEGMENT_M = 8;
+/** Pays for every squad and wall of the scenario. */
+const COMBAT_BUDGET = 1_000_000;
+/** Squads must exist after the run: all 200 are placed, ~10 % fall in the fight vs 30.000 zombies (177 left in seed 1). */
+const COMBAT_MIN_UNITS = 0.8 * COMBAT_UNITS;
+const UNIT_MIX = ['infantry', 'mgTeam', 'sniperTeam', 'mortar', 'engineers', 'riotPolice', 'medics'] as const;
+
+/** `count` wall lines of WALL_LENGTH_M along the centre line of long streets, spread over the map (always valid ground). */
+function streetWalls(count: number): [{ x: number; y: number }, { x: number; y: number }][] {
+  const { roads } = createWorld(1, { size: 'medium' }).map;
+  const streets: number[] = [];
+  for (let e = 0; e < roads.edgeCount; e++) {
+    if (roads.edgeKind[e] !== 0) continue;
+    const a = roads.edgeA[e] as number;
+    const b = roads.edgeB[e] as number;
+    const len = Math.hypot(
+      (roads.nodeX[b] as number) - (roads.nodeX[a] as number),
+      (roads.nodeY[b] as number) - (roads.nodeY[a] as number),
+    );
+    if (len >= WALL_LENGTH_M + 20) streets.push(e);
+  }
+  const step = Math.max(1, Math.floor(streets.length / count));
+  const out: [{ x: number; y: number }, { x: number; y: number }][] = [];
+  for (let i = 0; i < count; i++) {
+    const e = streets[i * step] as number;
+    const a = roads.edgeA[e] as number;
+    const b = roads.edgeB[e] as number;
+    const ax = roads.nodeX[a] as number;
+    const ay = roads.nodeY[a] as number;
+    const bx = roads.nodeX[b] as number;
+    const by = roads.nodeY[b] as number;
+    const len = Math.hypot(bx - ax, by - ay);
+    const ux = ((bx - ax) / len) * (WALL_LENGTH_M / 2);
+    const uy = ((by - ay) / len) * (WALL_LENGTH_M / 2);
+    const cx = (ax + bx) / 2;
+    const cy = (ay + by) / 2;
+    out.push([
+      { x: cx - ux, y: cy - uy },
+      { x: cx + ux, y: cy + uy },
+    ]);
+  }
+  return out;
+}
+
+/** Centre of the nearest cell (ring search) that is neither water nor building; the sim refuses those. */
+function nearestWalkable(map: CityMapData, x: number, y: number): { x: number; y: number } {
+  const { terrain, widthCells: w, heightCells: h, cellSizeM: cs } = map;
+  const cx = Math.min(w - 1, Math.max(0, Math.floor(x / cs)));
+  const cy = Math.min(h - 1, Math.max(0, Math.floor(y / cs)));
+  for (let r = 0; r < Math.max(w, h); r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const t = terrain[ny * w + nx];
+        if (t === TERRAIN.water || t === TERRAIN.building) continue;
+        return { x: (nx + 0.5) * cs, y: (ny + 0.5) * cs };
+      }
+    }
+  }
+  return { x, y };
+}
+
+/** 200 squads in a 10 x 20 grid around the city centre (12 m apart, snapped to walkable cells) and 20 walls of 40 m along streets. */
+function combatCommands(): Command[] {
+  const cmds: Command[] = [];
+  const { map } = createWorld(1, { size: 'medium' });
+  for (let i = 0; i < COMBAT_UNITS; i++) {
+    const { x, y } = nearestWalkable(map, 1000 - 60 + (i % 10) * 12, 1000 - 120 + Math.floor(i / 10) * 12);
+    cmds.push({
+      tick: 0,
+      playerId: 0,
+      type: 'PlaceUnit',
+      payload: { unitType: UNIT_MIX[i % UNIT_MIX.length] as (typeof UNIT_MIX)[number], x, y },
+    });
+  }
+  for (const [a, b] of streetWalls(COMBAT_WALLS)) {
+    cmds.push({
+      tick: 0,
+      playerId: 0,
+      type: 'PlaceStructure',
+      payload: { kind: 'wall', points: [a.x, a.y, b.x, b.y], rotation: 0 },
+    });
+  }
+  return cmds;
+}
+
 /** Add scenarios here (M2 and later). */
 const SCENARIOS: Scenario[] = [
   {
@@ -103,6 +198,37 @@ const SCENARIOS: Scenario[] = [
       if (w.counters.outbreakTick < 0) errors.push('outbreak did not start');
       if (w.zombieCount < OUTBREAK_MIN_ZOMBIES)
         errors.push(`expected at least ${OUTBREAK_MIN_ZOMBIES} zombies, got ${w.zombieCount}`);
+      return errors;
+    },
+  },
+  {
+    // Outbreak in the centre, 30.000 zombies, 200 squads and 20 walls: targeting, projectiles, pressure
+    // damage and blocking structures on top of the horde and the civilians.
+    kind: 'tick',
+    name: 'combat-medium',
+    seed: 1,
+    options: { size: 'medium', startBudget: COMBAT_BUDGET },
+    warmupTicks: 700,
+    measureTicks: 600,
+    commands: [
+      { tick: 0, playerId: 0, type: 'StartOutbreak', payload: { x: 1000, y: 1000, family: 'viral' } },
+      ...spawnBursts(30_000, 1000, 'zombie', 0),
+      ...combatCommands(),
+    ],
+    expectedCivilians: CITY_SIZES.medium.population,
+    verify: (w) => {
+      const errors: string[] = [];
+      if (w.counters.outbreakTick < 0) errors.push('outbreak did not start');
+      if (w.unitCount < COMBAT_MIN_UNITS)
+        errors.push(
+          `expected at least ${COMBAT_MIN_UNITS} squads, got ${w.unitCount} (budget ${w.counters.budget})`,
+        );
+      if (w.structures().length < COMBAT_WALLS * (WALL_LENGTH_M / SEGMENT_M))
+        errors.push(
+          `expected ${COMBAT_WALLS * (WALL_LENGTH_M / SEGMENT_M)} wall segments, got ${w.structures().length}`,
+        );
+      if (w.zombieCount + w.counters.zombiesKilled < OUTBREAK_MIN_ZOMBIES)
+        errors.push(`expected at least ${OUTBREAK_MIN_ZOMBIES} zombies spawned, got ${w.zombieCount} alive`);
       return errors;
     },
   },
@@ -159,7 +285,13 @@ function runTick(sc: TickScenario): Outcome {
     );
   if (sc.verify) errors.push(...sc.verify(host.world));
   const stats = summarize(timings);
-  return { stats, gated: stats.p95, targetMs: TICK_TARGET_MS, detail: `zombies=${z} civilians=${c}`, errors };
+  return {
+    stats,
+    gated: stats.p95,
+    targetMs: TICK_TARGET_MS,
+    detail: `zombies=${z} civilians=${c} units=${host.world.unitCount ?? 0}`,
+    errors,
+  };
 }
 
 function runGen(sc: GenScenario): Outcome {

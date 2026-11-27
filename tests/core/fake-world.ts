@@ -1,7 +1,8 @@
-// Shared test doubles for the core tests: a tiny valid map and a fake SimWorld (v3). Does not import src/sim.
+// Shared test doubles for the core tests: a tiny valid map and a fake SimWorld (v4). Does not import src/sim.
 import type { Command } from '../../src/core/commands';
 import { type HashState, hashU32 } from '../../src/core/hash';
 import { createRng, type Rng } from '../../src/core/rng';
+import type { StructureView, UnitView } from '../../src/core/types/combat';
 import { type CityMapData, NONE_U8 } from '../../src/core/types/map';
 import type {
   DebugField,
@@ -81,7 +82,15 @@ export class FakeWorld implements SimWorld {
     civiliansDead: 0,
     zombiesKilled: 0,
     outbreakTick: -1,
+    collateralKills: 0,
+    soldiersLost: 0,
+    budget: 0,
   };
+  /** The fake never produces these; tests may set them to exercise the snapshot and worker paths. */
+  unitCount = 0;
+  projectileCount = 0;
+  fxCount = 0;
+  structuresVersion = 0;
   zonesVersion = 0;
   stepsRun = 0;
   readonly calls: string[] = [];
@@ -142,6 +151,26 @@ export class FakeWorld implements SimWorld {
 
   writeCorpses(out: AgentSection): void {
     this.fill(out, this.corpseCount, 5000, 0);
+  }
+
+  writeUnits(out: AgentSection): void {
+    this.fill(out, this.unitCount, 7000, 3);
+  }
+
+  writeProjectiles(out: AgentSection): void {
+    this.fill(out, this.projectileCount, 9000, 1);
+  }
+
+  writeFx(out: Float32Array): void {
+    for (let i = 0; i < this.fxCount; i++) out.set([i % 6, i, i + 0.5, 1], i * 4);
+  }
+
+  units(): UnitView[] {
+    return [];
+  }
+
+  structures(): StructureView[] {
+    return [];
   }
 
   zones(): ZoneView[] {
