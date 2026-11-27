@@ -194,7 +194,11 @@ function run(s: SimState, i: number, prod: number, pr: number): number {
   f *= inR;
   for (let r = 0; r < NR; r++) {
     const use = (EB_IN[k * NR + r] as number) * f * PASS_MIN;
-    if (use > 0) e.amount[r] = Math.max(0, (e.amount[r] as number) - use);
+    if (use > 0) {
+      const a = e.amount[r] as number;
+      e.amount[r] = Math.max(0, a - use);
+      e.flow[r] = (e.flow[r] as number) - (a - (e.amount[r] as number));
+    }
   }
   for (let r = 0; r < NR; r++) {
     const v = (EB_OUT[k * NR + r] as number) * f * PASS_MIN;
@@ -202,6 +206,7 @@ function run(s: SimState, i: number, prod: number, pr: number): number {
     if (v > 0) {
       if (r === R.budget) addBudget(s, v);
       else got = e.store(r, v);
+      e.flow[r] = (e.flow[r] as number) + got;
       if (got < v - 1e-9 && bn === BN_NONE) bn = BN_STORAGE;
     }
     e.output[i * NR + r] = got / PASS_MIN;
@@ -259,20 +264,22 @@ export function economyPass(s: SimState): void {
   e.amount[R.power] = e.powerSupply - e.powerDemand;
   // Taxes (population x morale; conscripts pay none) and food.
   const taxShare = 1 - (e.conscriptsPct / 100) * POPULATION.conscriptTaxPenalty;
-  addBudget(
-    s,
+  const tax =
     e.population *
-      POPULATION.taxPerResidentPerMin *
-      (e.morale / 100) *
-      taxShare *
-      e.decreeFactor('taxFactor') *
-      PASS_MIN,
-  );
+    POPULATION.taxPerResidentPerMin *
+    (e.morale / 100) *
+    taxShare *
+    e.decreeFactor('taxFactor') *
+    PASS_MIN;
+  addBudget(s, tax);
+  e.flow[R.budget] = (e.flow[R.budget] as number) + tax;
   const food = e.population * POPULATION.foodPerResidentPerMin * e.decreeFactor('foodFactor') * PASS_MIN;
-  e.hungry = (e.amount[R.food] as number) < food;
-  e.amount[R.food] = Math.max(0, (e.amount[R.food] as number) - food);
-  // Trend ring: stock (budget incl. counter) per pass.
+  const stock = e.amount[R.food] as number;
+  e.hungry = stock < food;
+  e.amount[R.food] = Math.max(0, stock - food);
+  e.flow[R.food] = (e.flow[R.food] as number) - (stock - (e.amount[R.food] as number));
+  // Trend ring: running flow per pass (purchases, building and repurposing excluded); power: its balance.
   const h = (e.passes % ECONOMY_RULES.trendPasses) * NR;
   for (let r = 0; r < NR; r++)
-    e.history[h + r] = r === R.budget ? s.counters.budget + (e.amount[r] as number) : (e.amount[r] as number);
+    e.history[h + r] = r === R.power ? (e.amount[r] as number) : (e.flow[r] as number);
 }

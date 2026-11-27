@@ -2,7 +2,7 @@
 import type { ResourceId } from '../core/commands';
 
 /** Budget trend arrow: perMin currently includes one-off purchases (sim), so it is hidden until it is income only. */
-export const SHOW_BUDGET_TREND = false;
+export const SHOW_BUDGET_TREND = true;
 
 export const RESOURCE_ORDER: readonly ResourceId[] = [
   'budget',
