@@ -28,6 +28,11 @@ export const scenarioSchema = z.object({
   population: z.number().int().min(100).optional(),
   difficulty: z.enum(['easy', 'normal', 'hard', 'nightmare']),
   victory: z.object({ kinds: z.array(z.enum(VICTORY)).min(1), all: z.boolean() }),
+  holdUntilS: z.number().min(60).optional(),
+  evacuationShare: z.number().min(0.1).max(1).optional(),
+  medals: z.object({ bronze: z.number(), silver: z.number(), gold: z.number() }).optional(),
+  unlosable: z.boolean().optional(),
+  timeLimitS: z.number().min(60).optional(),
 });
 
 function describe(issue: z.core.$ZodIssue): string {

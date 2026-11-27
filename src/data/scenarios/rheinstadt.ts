@@ -13,4 +13,6 @@ export const SCENARIO = {
   startResources: { budget: 6000, material: 400, fuel: 200, ammo: 1500, medicine: 100, food: 1500 },
   difficulty: 'normal',
   victory: { kinds: ['hold', 'evacuation'], all: false },
+  holdUntilS: 900,
+  medals: { bronze: 2000, silver: 5000, gold: 9000 },
 };

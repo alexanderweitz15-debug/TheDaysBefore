@@ -1,10 +1,11 @@
 // Global keys: O cycles the debug overlay and requests the matching field from the sim.
 import type { SimView } from '../core/types/app';
 import { OVERLAY_MODES, overlayMode } from '../render/view-state';
+import { keyOf } from './settings/store';
 
 export function installOverlayHotkey(sim: SimView): () => void {
   const onKey = (e: KeyboardEvent): void => {
-    if (e.code !== 'KeyO' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code !== keyOf('overlay') || e.ctrlKey || e.metaKey || e.altKey) return;
     const el = document.activeElement;
     if (
       el instanceof HTMLInputElement ||

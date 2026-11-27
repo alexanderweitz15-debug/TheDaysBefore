@@ -1,6 +1,8 @@
 // Pixi renderer: baked city map, agents, debug overlays, camera, FPS measurement. Reads the sim only.
+import { effect } from '@preact/signals';
 import { Application, Container } from 'pixi.js';
 import type { CreateRenderer } from '../core/types/app';
+import { settings } from '../ui/settings/store';
 import { Camera } from './camera';
 import { FpsMeter } from './fps';
 import { AgentsLayer } from './layers/agents';
@@ -62,6 +64,16 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   app.stage.addChild(world);
 
   const camera = new Camera(host, app.canvas, world);
+  // Render scale and frame limit only change the picture, never the simulation (GDD 13).
+  const stopQuality = effect(() => {
+    const res = Math.min(window.devicePixelRatio || 1, 2) * (settings.renderScale.value / 100);
+    app.renderer.resolution = res;
+    app.renderer.resize(host.clientWidth, host.clientHeight);
+    camera.apply();
+  });
+  const stopFps = effect(() => {
+    app.ticker.maxFPS = settings.fpsLimit.value;
+  });
   const meter = new FpsMeter();
 
   const onSnapshot = (s: NonNullable<typeof sim.curr>): void => {
@@ -110,6 +122,8 @@ export const createRenderer: CreateRenderer = async (host, sim) => {
   return {
     fps: () => meter.fps(),
     destroy: () => {
+      stopQuality();
+      stopFps();
       unsub();
       unsubMap();
       unsubZones();

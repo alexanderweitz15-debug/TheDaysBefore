@@ -4,6 +4,7 @@ import { type FireMode, GAME_SPEEDS, type GameSpeed, type Stance } from '../../c
 import type { CommandSink, SimView } from '../../core/types/app';
 import { CONFIRM_MS, GROUP_DOUBLE_MS } from '../../data/hud';
 import { jumpCamera, selectedStructure, selectedUnits } from '../../render/view-state';
+import { keyOf } from '../settings/store';
 import { commandTab, demolishConfirm, menuVisible, settingsOpen } from '../ui-state';
 
 const LOCAL_PLAYER = 0;
@@ -36,6 +37,12 @@ function isTyping(): boolean {
   );
 }
 
+const isSpeedUp = (e: KeyboardEvent): boolean =>
+  e.code === keyOf('speedUp') || e.code === 'NumpadAdd' || e.key === '+';
+const isSpeedDown = (e: KeyboardEvent): boolean =>
+  e.code === keyOf('speedDown') || e.code === 'NumpadSubtract' || e.key === '-';
+const isSpeedKey = (e: KeyboardEvent): boolean => isSpeedUp(e) || isSpeedDown(e);
+
 export function installGameKeys(sim: SimView, commands: CommandSink): () => void {
   let lastSpeed: GameSpeed = 1;
   let lastDigit = { code: '', t: 0 };
@@ -62,7 +69,7 @@ export function installGameKeys(sim: SimView, commands: CommandSink): () => void
     if (e.ctrlKey || e.metaKey || e.altKey || isTyping() || settingsOpen.value || menuVisible.value) return;
     const speed = sim.stats.speed as GameSpeed;
     const units = sim.units.filter((u) => selectedUnits.value.includes(u.id));
-    if (e.code === 'Space') {
+    if (e.code === keyOf('pause')) {
       e.preventDefault();
       if (e.repeat) return;
       if (speed === 0) send('SetGameSpeed', { speed: lastSpeed });
@@ -70,28 +77,25 @@ export function installGameKeys(sim: SimView, commands: CommandSink): () => void
         lastSpeed = speed;
         send('SetGameSpeed', { speed: 0 });
       }
-    } else if (!e.repeat && (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_')) {
+    } else if (!e.repeat && isSpeedKey(e)) {
       const i = GAME_SPEEDS.indexOf(speed);
-      const next =
-        GAME_SPEEDS[
-          Math.max(1, Math.min(GAME_SPEEDS.length - 1, i + (e.key === '+' || e.key === '=' ? 1 : -1)))
-        ];
+      const next = GAME_SPEEDS[Math.max(1, Math.min(GAME_SPEEDS.length - 1, i + (isSpeedUp(e) ? 1 : -1)))];
       if (next !== undefined) send('SetGameSpeed', { speed: next });
     } else if (e.repeat) {
       return;
-    } else if (e.code === 'KeyB') commandTab.value = 'defense';
-    else if (e.code === 'KeyH' && units.length > 0) {
+    } else if (e.code === keyOf('tabDefense')) commandTab.value = 'defense';
+    else if (e.code === keyOf('stance') && units.length > 0) {
       const i = STANCE_CYCLE.indexOf((units[0] as (typeof units)[number]).stance);
       send('SetStance', {
         unitIds: units.map((u) => u.id),
         stance: STANCE_CYCLE[(i + 1) % STANCE_CYCLE.length],
       });
-    } else if (e.code === 'KeyF' && units.length > 0) {
+    } else if (e.code === keyOf('fireMode') && units.length > 0) {
       const i = FIRE_CYCLE.indexOf((units[0] as (typeof units)[number]).fireMode);
       send('SetFireMode', { unitIds: units.map((u) => u.id), mode: FIRE_CYCLE[(i + 1) % FIRE_CYCLE.length] });
-    } else if (e.code === 'KeyX' && selectedStructure.value !== null)
+    } else if (e.code === keyOf('demolish') && selectedStructure.value !== null)
       requestDemolish(commands, selectedStructure.value);
-    else if (e.code === 'Home') {
+    else if (e.code === keyOf('home')) {
       const depot = sim.structures.find((s) => s.kind === 'depot');
       if (depot) jumpCamera(depot.shape[0] as number, depot.shape[1] as number);
       else if (sim.curr) jumpCamera(sim.curr.widthM / 2, sim.curr.heightM / 2);

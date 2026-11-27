@@ -123,6 +123,13 @@ export const palette = {
     bottleneck: sem(0xe5323c, 'exclamation'),
     pick: sem(0xffb347, 'double-line'),
   },
+  /** Debrief heatmaps and time-lapse; each map has its own tab and a text label, so hue is never the only cue. */
+  debrief: {
+    infection: 0xb04bff,
+    losses: 0xe5323c,
+    collateral: 0xffb347,
+    line: 0x6fa3d9,
+  },
   overlay: {
     flow: 0x6fa3d9,
     density: 0xffb347,

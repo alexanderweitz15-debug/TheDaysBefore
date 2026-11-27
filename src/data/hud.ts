@@ -26,3 +26,8 @@ export const MINIMAP_DENSITY_FULL = 12;
 export const MIN_LINE_LENGTH_M = 3;
 /** Rotation step for point structures (key R), radians. */
 export const ROTATE_STEP = Math.PI / 2;
+/** Resources shown as chips only while relevant (non-zero amount or trend, or critical). */
+export const RELEVANT_ONLY_RESOURCES = ['power', 'research'] as const;
+/** Countdown colors: warn below, crit below, seconds. */
+export const COUNTDOWN_WARN_S = 120;
+export const COUNTDOWN_CRIT_S = 60;

@@ -1,9 +1,22 @@
+import { useEffect } from 'preact/hooks';
+import type { CommandSink } from '../../core/types/app';
 import { isUnlocked, MENU_ENTRIES, type MenuEntry } from '../../data/menu';
 import { SCENARIOS } from '../../data/scenarios';
+import { LESSONS, LOCKED_LESSONS } from '../../data/tutorial';
 import { LockIcon } from '../components/icons';
 import { t } from '../i18n';
-import { restartMission, toMainMenu } from '../session';
-import { activeScenario, briefingOpen, briefingScenarioId, menuVisible, settingsOpen } from '../ui-state';
+import { latestSave, loadSlot, refreshSaves, saveList } from '../saves';
+import { startLesson, startSkirmish } from '../session';
+import { lessonDone } from '../tutorial/progress';
+import {
+  activeScenario,
+  briefingOpen,
+  briefingScenarioId,
+  menuVisible,
+  settingsOpen,
+  tutorialMenuOpen,
+} from '../ui-state';
+import { PauseMenu } from './pause-menu';
 
 function activate(e: MenuEntry): void {
   if (!isUnlocked(e)) return;
@@ -12,26 +25,32 @@ function activate(e: MenuEntry): void {
     briefingScenarioId.value ??= SCENARIOS[0]?.id ?? null;
     briefingOpen.value = true;
     menuVisible.value = false;
+  } else if (e.id === 'skirmish') startSkirmish();
+  else if (e.id === 'tutorial') tutorialMenuOpen.value = true;
+  else if (e.id === 'continue') {
+    const s = latestSave();
+    if (s) void loadSlot(s.slot);
   }
 }
 
 function Entry({ entry }: { entry: MenuEntry }) {
   const locked = !isUnlocked(entry);
-  const reason = t('menu.locked', { milestone: entry.unlock });
+  const noSave = entry.id === 'continue' && !locked && latestSave() === null;
+  const reason = locked ? t('menu.locked', { milestone: entry.unlock }) : noSave ? t('menu.noSave') : null;
   return (
     <li>
       <button
         type="button"
         class="sz-btn"
-        aria-disabled={locked ? 'true' : undefined}
-        aria-describedby={locked ? `menu-reason-${entry.id}` : undefined}
+        aria-disabled={reason ? 'true' : undefined}
+        aria-describedby={reason ? `menu-reason-${entry.id}` : undefined}
         data-tutorial-id={entry.tutorialId}
-        onClick={() => activate(entry)}
+        onClick={() => !noSave && activate(entry)}
       >
         <span>{t(entry.labelKey)}</span>
-        {locked && (
+        {reason && (
           <span class="sz-reason" id={`menu-reason-${entry.id}`}>
-            <LockIcon title={t('menu.lockedLabel')} />
+            {locked && <LockIcon title={t('menu.lockedLabel')} />}
             {reason}
           </span>
         )}
@@ -40,9 +59,53 @@ function Entry({ entry }: { entry: MenuEntry }) {
   );
 }
 
-export function MainMenu() {
+function TutorialMenu() {
+  return (
+    <nav class="sz-panel sz-menu" aria-label={t('menu.tutorial')} data-tutorial-id="tutorial-menu">
+      <h1>{t('app.title')}</h1>
+      <h2>{t('menu.tutorial')}</h2>
+      <ul>
+        {LESSONS.map((l) => (
+          <li key={l.id}>
+            <button
+              type="button"
+              class="sz-btn"
+              data-tutorial-id={`lesson-${l.id}`}
+              onClick={() => startLesson(l.id)}
+            >
+              <span>{t(l.title)}</span>
+              {lessonDone(l.id) && <span class="sz-badge">{t('tutorial.done')}</span>}
+            </button>
+          </li>
+        ))}
+        {LOCKED_LESSONS.map((l) => (
+          <li key={l.id}>
+            <button type="button" class="sz-btn" aria-disabled="true">
+              <span>{t(l.title)}</span>
+              <span class="sz-reason">
+                <LockIcon title={t('menu.lockedLabel')} />
+                {t('menu.locked', { milestone: l.milestone })}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button type="button" class="sz-btn sz-btn--compact" onClick={() => (tutorialMenuOpen.value = false)}>
+        {t('menu.back')}
+      </button>
+    </nav>
+  );
+}
+
+export function MainMenu({ commands }: { commands: CommandSink }) {
+  useEffect(() => {
+    void refreshSaves();
+  }, []);
+  void saveList.value;
   if (briefingOpen.value) return null;
   if (!menuVisible.value) {
+    // In a mission Esc opens the pause menu; only the free-mode backdrop keeps the button.
+    if (activeScenario.value !== null) return null;
     return (
       <button
         type="button"
@@ -54,41 +117,12 @@ export function MainMenu() {
       </button>
     );
   }
-  const inMission = activeScenario.value !== null;
+  if (activeScenario.value !== null) return <PauseMenu commands={commands} />;
+  if (tutorialMenuOpen.value) return <TutorialMenu />;
   return (
     <nav class="sz-panel sz-menu" aria-label={t('menu.title')} data-tutorial-id="main-menu">
       <h1>{t('app.title')}</h1>
-      <h2>{inMission ? t('pause.title') : t('menu.title')}</h2>
-      {inMission && (
-        <ul data-tutorial-id="pause-menu">
-          <li>
-            <button
-              type="button"
-              class="sz-btn"
-              data-tutorial-id="pause-resume"
-              onClick={() => (menuVisible.value = false)}
-            >
-              {t('pause.resume')}
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              class="sz-btn"
-              title={t('pause.restart.tip')}
-              data-tutorial-id="pause-restart"
-              onClick={restartMission}
-            >
-              {t('pause.restart')}
-            </button>
-          </li>
-          <li>
-            <button type="button" class="sz-btn" data-tutorial-id="pause-main" onClick={toMainMenu}>
-              {t('pause.mainMenu')}
-            </button>
-          </li>
-        </ul>
-      )}
+      <h2>{t('menu.title')}</h2>
       <ul>
         {MENU_ENTRIES.map((e) => (
           <Entry key={e.id} entry={e} />

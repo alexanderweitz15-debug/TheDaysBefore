@@ -173,12 +173,20 @@ const sim: SimView = {
   debugField: null,
   requestDebugField: () => undefined,
   mission: null,
+  debrief: null,
+  onDebrief: () => () => undefined,
 };
 const renderer = await createRenderer(document.getElementById('map') as HTMLElement, sim);
 mountUi(document.getElementById('ui') as HTMLElement, {
   sim,
   commands: { submit: () => undefined },
-  session: { restart: () => undefined },
+  session: {
+    restart: () => undefined,
+    save: () => Promise.reject(new Error('harness')),
+    load: () => undefined,
+    replay: () => Promise.reject(new Error('harness')),
+    verifyReplay: () => Promise.reject(new Error('harness')),
+  },
   renderer,
 });
 

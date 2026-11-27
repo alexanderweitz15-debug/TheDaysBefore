@@ -1,7 +1,8 @@
 // Camera: pans and zooms the world container. No rotation. 1 m = 1 px at zoom 1.
 import type { Container } from 'pixi.js';
+import { FIXED_PAN_KEYS } from '../data/game';
 import { FIT_INSET_BOTTOM_PX, FIT_INSET_TOP_PX, FIT_MARGIN } from '../data/render';
-import { settings } from '../ui/settings/store';
+import { keyOf, settings } from '../ui/settings/store';
 import { cameraRequest, cameraShake, cameraView } from './view-state';
 
 export const ZOOM_MIN = 0.1;
@@ -9,16 +10,14 @@ export const ZOOM_MAX = 8;
 const BASE_SPEED_PX_S = 700;
 const EDGE_PX = 8;
 const WHEEL_STEP = 0.0015;
-const PAN_KEYS: Record<string, [number, number]> = {
-  KeyW: [0, -1],
-  ArrowUp: [0, -1],
-  KeyS: [0, 1],
-  ArrowDown: [0, 1],
-  KeyA: [-1, 0],
-  ArrowLeft: [-1, 0],
-  KeyD: [1, 0],
-  ArrowRight: [1, 0],
-};
+/** Rebindable pan keys plus the fixed arrow keys. */
+function panKey(code: string): [number, number] | undefined {
+  if (code === keyOf('panUp')) return [0, -1];
+  if (code === keyOf('panDown')) return [0, 1];
+  if (code === keyOf('panLeft')) return [-1, 0];
+  if (code === keyOf('panRight')) return [1, 0];
+  return FIXED_PAN_KEYS[code];
+}
 
 function typingInField(): boolean {
   const el = document.activeElement;
@@ -56,7 +55,7 @@ export class Camera {
       this.offs.push(() => window.removeEventListener(t, fn));
     };
     on('keydown', (e) => {
-      if (PAN_KEYS[e.code] && !typingInField() && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (panKey(e.code) && !typingInField() && !e.ctrlKey && !e.metaKey && !e.altKey) {
         this.keys.add(e.code);
         if (e.code.startsWith('Arrow')) e.preventDefault();
       }
@@ -167,7 +166,7 @@ export class Camera {
     let dx = 0;
     let dy = 0;
     for (const k of this.keys) {
-      const v = PAN_KEYS[k];
+      const v = panKey(k);
       if (v) {
         dx += v[0];
         dy += v[1];

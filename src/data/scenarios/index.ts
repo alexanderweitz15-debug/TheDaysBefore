@@ -4,16 +4,21 @@ import type { ScenarioDef } from '../../core/types/mission';
 import { de } from '../i18n/de';
 import { en } from '../i18n/en';
 import { SCENARIO as hafenstadt } from './hafenstadt';
+import { SCENARIO as kaltenbach } from './kaltenbach';
 import { SCENARIO as rheinstadt } from './rheinstadt';
 import { parseScenario } from './schema';
+import { makeSkirmish } from './skirmish';
+
+export { makeSkirmish, newSkirmishSeed } from './skirmish';
 
 export const SCENARIOS: readonly ScenarioDef[] = [
   parseScenario('rheinstadt.ts', rheinstadt),
   parseScenario('hafenstadt.ts', hafenstadt),
+  parseScenario('kaltenbach.ts', kaltenbach),
 ];
 
 const TEXT_FIELDS = ['name', 'briefing', 'goal'] as const;
-for (const s of SCENARIOS)
+for (const s of [...SCENARIOS, makeSkirmish(0)])
   for (const f of TEXT_FIELDS) {
     const key = `scenario.${s.textKey}.${f}`;
     if (!(key in de) || !(key in en)) throw new Error(`Scenario ${s.id}: i18n key ${key} missing in de/en`);

@@ -1,6 +1,7 @@
-// Top bar, left: every resource with icon, value, trend per minute and a tooltip (GDD 14).
+// Top bar, left: budget large, other resources as labeled chips (icon, value, trend). Tooltip lists sources.
 import type { ResourceId } from '../../core/commands';
 import type { ResourceView } from '../../core/types/mission';
+import { RELEVANT_ONLY_RESOURCES } from '../../data/hud';
 import { CRIT_FRACTION, RESOURCE_ORDER, UNLIMITED_CAPACITY, WARN_FRACTION } from '../../data/hud-economy';
 import { ResourceIcon } from '../components/icons';
 import { numberLocale, t } from '../i18n';
@@ -16,8 +17,8 @@ export function levelOf(id: ResourceId, r: ResourceView): Level {
   return f <= CRIT_FRACTION ? 'crit' : f <= WARN_FRACTION ? 'warn' : 'ok';
 }
 
-/** Non-color marker for the level (color-blind safe). */
-export const LEVEL_MARK: Record<Level, string> = { ok: '', warn: '!', crit: '!!' };
+const isRelevantOnly = (id: ResourceId): boolean =>
+  (RELEVANT_ONLY_RESOURCES as readonly ResourceId[]).includes(id);
 
 export function ResourceBar({ resources }: { resources: Record<ResourceId, ResourceView> }) {
   const fmt = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
@@ -32,6 +33,8 @@ export function ResourceBar({ resources }: { resources: Record<ResourceId, Resou
         if (!r) return null;
         const level = levelOf(id, r);
         const trend = Math.round(r.perMin);
+        // Power and research only appear once they matter.
+        if (isRelevantOnly(id) && level === 'ok' && Math.round(r.amount) === 0 && trend === 0) return null;
         const cap =
           r.capacity > 0 && r.capacity < UNLIMITED_CAPACITY
             ? `\n${t('hud.capacity', { value: fmt.format(r.capacity) })}`
@@ -39,17 +42,24 @@ export function ResourceBar({ resources }: { resources: Record<ResourceId, Resou
         return (
           <li
             key={id}
-            class={`sz-res sz-level--${level}`}
+            class={`sz-res sz-level--${level}${id === 'budget' ? ' sz-res--main' : ''}`}
             title={`${t(`res.${id}`)}\n${t(`res.${id}.tip`)}${cap}\n${t('hud.perMin', { value: signed.format(trend) })}`}
             data-tutorial-id={`hud-res-${id}`}
           >
-            <ResourceIcon id={id} />
-            <span class="sz-mono sz-res__value">{fmt.format(r.amount)}</span>
-            {LEVEL_MARK[level] && <span class="sz-level__mark">{LEVEL_MARK[level]}</span>}
-            <span class="sz-mono sz-res__trend" data-sign={trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat'}>
-              {trend > 0 ? '▲' : trend < 0 ? '▼' : '–'}
-              {trend !== 0 && fmt.format(Math.abs(trend))}
+            <span class="sz-res__label">
+              <ResourceIcon id={id} />
+              {t(`res.${id}`)}
             </span>
+            <span class="sz-res__line">
+              <span class="sz-mono sz-res__value">{fmt.format(r.amount)}</span>
+              <span class="sz-mono sz-res__trend" data-sign={trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat'}>
+                {trend > 0 ? '▲' : trend < 0 ? '▼' : ''}
+                {trend !== 0 && fmt.format(Math.abs(trend))}
+              </span>
+            </span>
+            {level !== 'ok' && (
+              <span class="sz-sr">{level === 'crit' ? t('hud.critical') : t('hud.low')}</span>
+            )}
           </li>
         );
       })}

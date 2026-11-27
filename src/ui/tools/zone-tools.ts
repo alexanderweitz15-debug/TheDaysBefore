@@ -1,5 +1,6 @@
 // Civil tools (GDD 14): K corridor, Z safe zone, V rally point; right click or Del removes a zone.
 // Esc is handled by app.tsx through cancelTool(), so it is handled exactly once.
+
 import type { CommandSink, SimView } from '../../core/types/app';
 import type { ZoneView } from '../../core/types/zones';
 import { ZONES } from '../../data/agents/civilians';
@@ -21,11 +22,18 @@ import {
   type ToolName,
   toolDraft,
 } from '../../render/view-state';
-import { settings } from '../settings/store';
+import { keyOf, settings } from '../settings/store';
 import { menuVisible, pendingRemoval, settingsOpen, toolNotice } from '../ui-state';
 
 const LOCAL_PLAYER = 0;
-const TOOL_KEYS: Record<string, ToolName> = { KeyK: 'corridor', KeyZ: 'safeZone', KeyV: 'rallyPoint' };
+const toolOf = (code: string): ToolName | undefined =>
+  code === keyOf('toolCorridor')
+    ? 'corridor'
+    : code === keyOf('toolSafeZone')
+      ? 'safeZone'
+      : code === keyOf('toolRally')
+        ? 'rallyPoint'
+        : undefined;
 
 let pendingTimer = 0;
 
@@ -164,7 +172,7 @@ export function installZoneTools(sim: SimView, commands: CommandSink): () => voi
       menuVisible.value
     )
       return;
-    const tool = TOOL_KEYS[e.code];
+    const tool = toolOf(e.code);
     if (tool) {
       cancelTool();
       activeTool.value = tool;

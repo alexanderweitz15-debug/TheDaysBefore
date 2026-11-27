@@ -1,9 +1,12 @@
 // UI root: overlay above the map. #ui ignores pointer events, only panels take them.
 import { effect } from '@preact/signals';
 import { render } from 'preact';
-import { useEffect } from 'preact/hooks';
+import { useEffect, useMemo } from 'preact/hooks';
 import type { MountUi, UiDeps } from '../core/types/app';
 import { selectedStructure, selectedUnits } from '../render/view-state';
+import { installAudio } from './audio/audio';
+import { tapCommands } from './command-tap';
+import { installGameFlow } from './game-flow';
 import { installOverlayHotkey } from './hotkeys';
 import { CommandBar } from './hud/command-bar';
 import { ContextPanel } from './hud/context-panel';
@@ -12,17 +15,20 @@ import { Minimap } from './hud/minimap';
 import { LoadingHint, OverlayBadge } from './hud/overlay-status';
 import { PerfOverlay } from './hud/perf-overlay';
 import { SelectionBox } from './hud/selection-box';
+import { Situation } from './hud/situation';
 import { ToolHint } from './hud/status-hud';
 import { TopBar } from './hud/top-bar';
 import { WarningMarkers } from './hud/warning-markers';
 import { applyPaletteVars } from './palette-vars';
 import { Briefing } from './screens/briefing';
+import { Debrief } from './screens/debrief';
 import { LoadingScreen } from './screens/loading';
 import { MainMenu } from './screens/main-menu';
 import { bindSession } from './session';
 import { SettingsPanel } from './settings/settings-panel';
 import { settings } from './settings/store';
 import { installEconomyKeys } from './tools/economy-keys';
+import { installTutorial, TutorialOverlay } from './tutorial/tutorial';
 import { SidePanel } from './windows/side-panel';
 import '@fontsource/inter/latin-400.css';
 import '@fontsource/inter/latin-500.css';
@@ -37,19 +43,24 @@ import { cancelTool, installZoneTools } from './tools/zone-tools';
 import {
   activeScenario,
   briefingOpen,
+  confirmAction,
+  debriefData,
+  debriefOpen,
   debugOpen,
   loadingState,
   menuVisible,
   outbreakArmed,
+  savesMode,
   settingsOpen,
   sidePanel,
   spawnArmed,
 } from './ui-state';
 
-function App({ deps }: { deps: UiDeps }) {
+function App({ deps: rawDeps }: { deps: UiDeps }) {
+  const deps = useMemo(() => ({ ...rawDeps, commands: tapCommands(rawDeps.commands) }), [rawDeps]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' || debriefOpen.value) return;
       // One place for Esc: active mode first, then panels, then the menu.
       if (cancelTool()) return;
       if (selectedUnits.value.length > 0 || selectedStructure.value !== null) {
@@ -65,14 +76,29 @@ function App({ deps }: { deps: UiDeps }) {
         spawnArmed.value = false;
         outbreakArmed.value = false;
       } else if (debugOpen.value) debugOpen.value = false;
+      else if (savesMode.value) savesMode.value = null;
+      else if (confirmAction.value) confirmAction.value = null;
+      else if (settingsOpen.value && menuVisible.value) settingsOpen.value = false;
       else if (!menuVisible.value) menuVisible.value = true;
-      else if (settingsOpen.value) settingsOpen.value = false;
+      else if (activeScenario.value && loadingState.value === null) menuVisible.value = false;
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   useEffect(() => installOverlayHotkey(deps.sim), [deps.sim]);
+  useEffect(() => installGameFlow(deps.sim, deps.commands), [deps.sim, deps.commands]);
+  useEffect(() => installTutorial(deps.sim, deps.commands), [deps.sim, deps.commands]);
+  useEffect(() => installAudio(deps.sim), [deps.sim]);
+  useEffect(
+    () =>
+      deps.sim.onDebrief((d) => {
+        debriefData.value = d;
+        debriefOpen.value = true;
+        menuVisible.value = false;
+      }),
+    [deps.sim],
+  );
   useEffect(() => installEconomyKeys(), []);
   useEffect(() => installZoneTools(deps.sim, deps.commands), [deps.sim, deps.commands]);
   useEffect(() => installSelectTool(deps.sim, deps.commands), [deps.sim, deps.commands]);
@@ -87,9 +113,10 @@ function App({ deps }: { deps: UiDeps }) {
     !(menuVisible.value && activeScenario.value === null);
   return (
     <>
-      <MainMenu />
+      <MainMenu commands={deps.commands} />
       <Briefing />
       {hud && <WarningMarkers sim={deps.sim} commands={deps.commands} />}
+      {hud && <TutorialOverlay sim={deps.sim} />}
       {hud && <SidePanel sim={deps.sim} commands={deps.commands} />}
       {menuVisible.value && settingsOpen.value && <SettingsPanel />}
       <PerfOverlay sim={deps.sim} renderer={deps.renderer} />
@@ -98,6 +125,7 @@ function App({ deps }: { deps: UiDeps }) {
           <TopBar sim={deps.sim} commands={deps.commands} />
           <ContextPanel sim={deps.sim} commands={deps.commands} />
           <CommandBar sim={deps.sim} />
+          <Situation sim={deps.sim} />
           <Minimap sim={deps.sim} />
           <SelectionBox />
           <ToolHint />
@@ -105,6 +133,7 @@ function App({ deps }: { deps: UiDeps }) {
       )}
       <LoadingHint sim={deps.sim} />
       <OverlayBadge />
+      <Debrief sim={deps.sim} />
       <LoadingScreen sim={deps.sim} />
       <DebugPanel sim={deps.sim} commands={deps.commands} />
     </>

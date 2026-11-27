@@ -2,6 +2,16 @@
 import { type Signal, signal } from '@preact/signals';
 import { z } from 'zod';
 import { loadVersioned, saveVersioned, type VersionedSpec } from '../../core/save/versioned-storage';
+import {
+  AUDIO,
+  AUTOSAVE_OPTIONS,
+  DEFAULT_KEYS,
+  DEFAULT_SPEEDS,
+  FPS_LIMITS,
+  GRAPHICS_PRESET_VALUES,
+  GRAPHICS_PRESETS,
+  RENDER_SCALE,
+} from '../../data/game';
 import { CORPSE_LIMIT } from '../../data/render';
 
 export const LANGUAGES = ['de', 'en'] as const;
@@ -24,6 +34,8 @@ export const SETTING_LIMITS = {
   cameraSpeed: { min: 25, max: 300, step: 5 },
   /** Visible zombies above which the density texture replaces sprites (GDD 4, Rendering). */
   spriteLimit: { min: 5000, max: 30000, step: 1000 },
+  renderScale: RENDER_SCALE,
+  volume: { min: 0, max: 100, step: 5 },
 } as const;
 
 const schema = z.object({
@@ -49,6 +61,27 @@ const schema = z.object({
   screenShake: z.boolean(),
   /** No bright flashes at explosions or muzzles (photosensitivity, GDD 13). */
   noFlashes: z.boolean(),
+  /** Speed applied when a mission starts (GDD 13). */
+  gameSpeed: z.number().refine((v) => DEFAULT_SPEEDS.includes(v as never)),
+  /** Pause automatically when the outbreak starts or the defense phase begins. */
+  autopause: z.boolean(),
+  /** Autosave interval in minutes, 0 = off (GDD 4). */
+  autosaveMin: z.number().refine((v) => AUTOSAVE_OPTIONS.includes(v as never)),
+  /** Ask before restart and leaving to the main menu (surrender always asks). */
+  confirmLeave: z.boolean(),
+  graphicsPreset: z.enum(GRAPHICS_PRESETS),
+  /** Percent of the device resolution the map is rendered at. */
+  renderScale: z.number().int().min(RENDER_SCALE.min).max(RENDER_SCALE.max),
+  fpsLimit: z.number().refine((v) => FPS_LIMITS.includes(v as never)),
+  volMaster: z.number().int().min(0).max(100),
+  volEffects: z.number().int().min(0).max(100),
+  volAmbient: z.number().int().min(0).max(100),
+  volUi: z.number().int().min(0).max(100),
+  volHorde: z.number().int().min(0).max(100),
+  monoAudio: z.boolean(),
+  muteInBackground: z.boolean(),
+  /** Key bindings: action -> KeyboardEvent.code; missing actions use the defaults. */
+  keys: z.record(z.string(), z.string()),
 });
 
 export type Settings = z.infer<typeof schema>;
@@ -56,7 +89,7 @@ export type Settings = z.infer<typeof schema>;
 export const SETTING_DEFAULTS: Settings = {
   language: 'de',
   uiScale: 100,
-  perfOverlay: true,
+  perfOverlay: false,
   edgeScroll: true,
   cameraSpeed: 100,
   buildings3d: true,
@@ -71,83 +104,72 @@ export const SETTING_DEFAULTS: Settings = {
   particles: 'medium',
   screenShake: true,
   noFlashes: false,
+  gameSpeed: 1,
+  autopause: true,
+  autosaveMin: 5,
+  confirmLeave: true,
+  graphicsPreset: 'medium',
+  renderScale: 100,
+  fpsLimit: 0,
+  volMaster: AUDIO.defaults.master,
+  volEffects: AUDIO.defaults.effects,
+  volAmbient: AUDIO.defaults.ambient,
+  volUi: AUDIO.defaults.ui,
+  volHorde: AUDIO.defaults.horde,
+  monoAudio: false,
+  muteInBackground: true,
+  keys: {},
 };
 
 const spec: VersionedSpec<Settings> = {
   key: 'sperrzone.settings',
-  version: 1,
+  version: 2,
   schema,
   defaults: SETTING_DEFAULTS,
+  // v2: the performance overlay is off by default (HUD cleanup), also for saved settings.
+  migrations: { 1: (old) => ({ ...(old as object), perfOverlay: false }) },
 };
 
 type SettingSignals = { [K in keyof Settings]: Signal<Settings[K]> };
 
 const initial = loadVersioned(spec);
+const KEYS = Object.keys(SETTING_DEFAULTS) as (keyof Settings)[];
 
-export const settings: SettingSignals = {
-  language: signal(initial.language),
-  uiScale: signal(initial.uiScale),
-  perfOverlay: signal(initial.perfOverlay),
-  edgeScroll: signal(initial.edgeScroll),
-  cameraSpeed: signal(initial.cameraSpeed),
-  buildings3d: signal(initial.buildings3d),
-  spriteLimit: signal(initial.spriteLimit),
-  devTools: signal(initial.devTools),
-  corpseLimit: signal(initial.corpseLimit),
-  violence: signal(initial.violence),
-  patternMode: signal(initial.patternMode),
-  reducedMotion: signal(initial.reducedMotion),
-  confirmRemoval: signal(initial.confirmRemoval),
-  unitBars: signal(initial.unitBars),
-  particles: signal(initial.particles),
-  screenShake: signal(initial.screenShake),
-  noFlashes: signal(initial.noFlashes),
-};
+export const settings = Object.fromEntries(KEYS.map((k) => [k, signal(initial[k])])) as SettingSignals;
 
 function current(): Settings {
-  return {
-    language: settings.language.peek(),
-    uiScale: settings.uiScale.peek(),
-    perfOverlay: settings.perfOverlay.peek(),
-    edgeScroll: settings.edgeScroll.peek(),
-    cameraSpeed: settings.cameraSpeed.peek(),
-    buildings3d: settings.buildings3d.peek(),
-    spriteLimit: settings.spriteLimit.peek(),
-    devTools: settings.devTools.peek(),
-    corpseLimit: settings.corpseLimit.peek(),
-    violence: settings.violence.peek(),
-    patternMode: settings.patternMode.peek(),
-    reducedMotion: settings.reducedMotion.peek(),
-    confirmRemoval: settings.confirmRemoval.peek(),
-    unitBars: settings.unitBars.peek(),
-    particles: settings.particles.peek(),
-    screenShake: settings.screenShake.peek(),
-    noFlashes: settings.noFlashes.peek(),
-  };
+  return Object.fromEntries(KEYS.map((k) => [k, settings[k].peek()])) as Settings;
+}
+
+const PRESET_KEYS = ['particles', 'buildings3d', 'spriteLimit', 'corpseLimit', 'renderScale'] as const;
+
+function put<K extends keyof Settings>(key: K, value: Settings[K]): void {
+  settings[key].value = value;
 }
 
 export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void {
-  settings[key].value = value;
+  put(key, value);
+  // Changing a preset-controlled option by hand switches to "custom".
+  if ((PRESET_KEYS as readonly string[]).includes(key)) put('graphicsPreset', 'custom');
   saveVersioned(spec, current());
 }
 
-export function resetSettings(): void {
-  settings.language.value = SETTING_DEFAULTS.language;
-  settings.uiScale.value = SETTING_DEFAULTS.uiScale;
-  settings.perfOverlay.value = SETTING_DEFAULTS.perfOverlay;
-  settings.edgeScroll.value = SETTING_DEFAULTS.edgeScroll;
-  settings.cameraSpeed.value = SETTING_DEFAULTS.cameraSpeed;
-  settings.buildings3d.value = SETTING_DEFAULTS.buildings3d;
-  settings.spriteLimit.value = SETTING_DEFAULTS.spriteLimit;
-  settings.devTools.value = SETTING_DEFAULTS.devTools;
-  settings.corpseLimit.value = SETTING_DEFAULTS.corpseLimit;
-  settings.violence.value = SETTING_DEFAULTS.violence;
-  settings.patternMode.value = SETTING_DEFAULTS.patternMode;
-  settings.reducedMotion.value = SETTING_DEFAULTS.reducedMotion;
-  settings.confirmRemoval.value = SETTING_DEFAULTS.confirmRemoval;
-  settings.unitBars.value = SETTING_DEFAULTS.unitBars;
-  settings.particles.value = SETTING_DEFAULTS.particles;
-  settings.screenShake.value = SETTING_DEFAULTS.screenShake;
-  settings.noFlashes.value = SETTING_DEFAULTS.noFlashes;
+export function applyGraphicsPreset(preset: Settings['graphicsPreset']): void {
+  put('graphicsPreset', preset);
+  if (preset !== 'custom') {
+    const v = GRAPHICS_PRESET_VALUES[preset];
+    for (const k of PRESET_KEYS) put(k, v[k] as never);
+  }
+  saveVersioned(spec, current());
+}
+
+/** Key code bound to an action. */
+export function keyOf(action: keyof typeof DEFAULT_KEYS): string {
+  return settings.keys.value[action] ?? DEFAULT_KEYS[action];
+}
+
+/** Resets all settings, or only the given groups of keys. */
+export function resetSettings(only?: readonly (keyof Settings)[]): void {
+  for (const k of only ?? KEYS) put(k, SETTING_DEFAULTS[k] as never);
   saveVersioned(spec, current());
 }

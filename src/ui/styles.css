@@ -183,14 +183,6 @@
   color: var(--sz-text-dim);
 }
 
-.sz-perf {
-  position: absolute;
-  right: 1rem;
-  top: 5.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-  min-width: 11rem;
-}
 .sz-perf dl {
   margin: 0;
   display: grid;
@@ -266,32 +258,6 @@
 }
 
 /* M3 HUD */
-.sz-topbar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.35rem 1rem;
-  font-size: 0.875rem;
-  border-radius: 0;
-}
-.sz-topbar__main {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.sz-topbar__stats {
-  display: flex;
-  gap: 1.25rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.75rem;
-}
 .sz-topbar__speed {
   display: flex;
   gap: 0.25rem;
@@ -316,22 +282,10 @@
   gap: 0.35rem;
   scrollbar-width: thin;
 }
-.sz-cmd {
-  flex: 0 0 auto;
-  width: auto;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.8125rem;
-}
-.sz-cmd__cost {
-  color: var(--sz-text-dim);
-}
 .sz-context {
   position: absolute;
-  right: 1rem;
-  bottom: 16.5rem;
+  left: 1rem;
+  bottom: 1rem;
   width: 14rem;
   padding: 0.6rem 0.75rem;
   font-size: 0.8125rem;
@@ -386,9 +340,6 @@
   pointer-events: none;
 }
 
-#ui .sz-topbar .sz-btn {
-  padding: 0.25rem 0.6rem;
-}
 #ui .sz-context .sz-btn {
   padding: 0.2rem 0.45rem;
   font-size: 0.75rem;
@@ -421,34 +372,6 @@ fieldset.sz-context__group {
 /* M4: economy HUD, windows, briefing, loading */
 .sz-dim {
   color: var(--sz-text-dim);
-}
-.sz-resources {
-  display: flex;
-  gap: 0.9rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  flex-wrap: wrap;
-}
-.sz-res {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  white-space: nowrap;
-}
-.sz-res__trend {
-  font-size: 0.6875rem;
-  color: var(--sz-text-dim);
-}
-.sz-res__trend[data-sign="down"] {
-  color: var(--sz-warn);
-}
-.sz-phase {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  white-space: nowrap;
 }
 .sz-level--warn {
   color: var(--sz-warn);
@@ -490,7 +413,7 @@ fieldset.sz-context__group {
 .sz-side {
   position: absolute;
   left: 1rem;
-  top: 6.25rem;
+  top: 5rem;
   width: 24rem;
   max-height: calc(100% - 19rem);
   display: flex;
@@ -736,4 +659,555 @@ fieldset.sz-context__group {
 }
 .sz-loading-screen {
   z-index: 6;
+}
+
+/* M5: pause menu, saves, objectives, debrief, tutorial, settings tabs */
+.sz-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.sz-tabs [aria-selected="true"] {
+  border-color: var(--sz-accent);
+  background: var(--sz-accent-soft);
+}
+.sz-cost {
+  font-size: 0.6875rem;
+}
+.sz-keys .sz-field--row {
+  gap: 0.5rem;
+  align-items: center;
+}
+.sz-keys .sz-field--row > span:first-child {
+  flex: 1;
+}
+.sz-keys [data-conflict="true"] {
+  outline: 1px dashed var(--sz-warn);
+}
+.sz-badge--warn {
+  border-color: var(--sz-warn);
+  color: var(--sz-warn);
+}
+.sz-saves {
+  position: absolute;
+  left: 24rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34rem;
+  max-width: calc(100% - 26rem);
+  max-height: calc(100% - 4rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  z-index: 4;
+}
+.sz-saves header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.sz-saves h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.sz-saves__list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sz-save {
+  border: 1px solid var(--sz-panel-border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.sz-save__meta {
+  font-size: 0.75rem;
+}
+.sz-save__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.sz-objectives h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sz-text-dim);
+}
+.sz-objectives ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.5rem;
+}
+.sz-objectives li {
+  display: contents;
+}
+.sz-objectives li .sz-bar {
+  grid-column: 1 / -1;
+  margin-bottom: 0.25rem;
+}
+.sz-objectives__score {
+  margin: 0.35rem 0 0;
+}
+.sz-debrief {
+  z-index: 7;
+  width: min(72rem, calc(100% - 2rem));
+}
+.sz-debrief__head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.sz-debrief__head h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 0.1em;
+}
+.sz-debrief__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+.sz-debrief__map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 60vh;
+  margin: 0 auto;
+}
+.sz-debrief__map canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.sz-timeline__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sz-timeline__row input {
+  flex: 1;
+}
+.sz-timeline__marks {
+  position: relative;
+  height: 1.25rem;
+  margin: 0 3rem 0 5rem;
+}
+.sz-timeline__mark {
+  position: absolute;
+  transform: translateX(-50%);
+  background: none;
+  border: 0;
+  color: var(--sz-warn);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+}
+.sz-score {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.sz-score th {
+  text-align: left;
+  font-weight: 400;
+}
+.sz-score td {
+  text-align: right;
+  padding-left: 0.75rem;
+}
+.sz-score__total {
+  border-top: 1px solid var(--sz-panel-border);
+  font-weight: 600;
+}
+.sz-causes {
+  padding-left: 1rem;
+  font-size: 0.875rem;
+}
+.sz-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.sz-chart {
+  margin: 0;
+  font-size: 0.75rem;
+}
+.sz-chart svg {
+  width: 100%;
+  height: 4rem;
+  background: color-mix(in srgb, var(--sz-background) 60%, transparent);
+}
+.sz-medal {
+  font-size: 0.875rem;
+}
+.sz-tut {
+  position: absolute;
+  left: 50%;
+  top: 5.5rem;
+  transform: translateX(-50%);
+  width: 26rem;
+  max-width: calc(100% - 2rem);
+  padding: 0.6rem 0.9rem;
+  border-color: var(--sz-accent);
+  z-index: 3;
+}
+.sz-tut p {
+  margin: 0.35rem 0 0.5rem;
+}
+.sz-tut__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sz-tut-ring {
+  position: fixed;
+  pointer-events: none;
+  border: 2px dashed var(--sz-focus);
+  border-radius: 6px;
+  z-index: 3;
+  animation: sz-tut-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sz-tut-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sz-focus) 40%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sz-tut-ring {
+    animation: none;
+  }
+}
+.sz-settings,
+.sz-saves {
+  z-index: 4;
+}
+
+/* M5 B3: clearer HUD. Top bar in three zones, situation card, build bar with icons. */
+.sz-topbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 0;
+}
+.sz-topbar__left {
+  min-width: 0;
+}
+.sz-topbar__center {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.sz-topbar__right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sz-topbar .sz-btn {
+  padding: 0.3rem 0.65rem;
+  min-height: 2rem;
+}
+.sz-topbar__speed {
+  gap: 0.2rem;
+}
+.sz-resources {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.sz-res {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.15rem 0.5rem 0.2rem;
+  border-bottom: 2px solid transparent;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sz-text) 6%, transparent);
+  white-space: nowrap;
+}
+.sz-res--main {
+  padding-right: 0.9rem;
+  margin-right: 0.35rem;
+  background: var(--sz-accent-soft);
+}
+.sz-res__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  line-height: 1.1;
+  color: var(--sz-text-dim);
+}
+.sz-res__line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.sz-res__value {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--sz-text);
+}
+.sz-res--main .sz-res__value {
+  font-size: 1.5rem;
+}
+.sz-res__trend {
+  font-size: 0.6875rem;
+  color: var(--sz-text-dim);
+}
+.sz-res__trend[data-sign="down"] {
+  color: var(--sz-warn);
+}
+/* Warn/crit: color plus border style (dashed / solid thick) so it works without color vision. */
+.sz-res.sz-level--warn {
+  border-bottom: 2px dashed var(--sz-warn);
+}
+.sz-res.sz-level--crit {
+  border-bottom: 3px solid var(--sz-danger);
+}
+.sz-res.sz-level--warn .sz-res__value,
+.sz-res.sz-level--crit .sz-res__value {
+  color: inherit;
+}
+.sz-phase {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  white-space: nowrap;
+}
+.sz-phase__name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.sz-phase__name strong {
+  font-size: 1.125rem;
+}
+.sz-phase__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+.sz-phase__clock-label {
+  font-size: 0.75rem;
+  color: var(--sz-text-dim);
+}
+.sz-phase__clock.sz-level--warn .sz-phase__clock-label,
+.sz-phase__clock.sz-level--crit .sz-phase__clock-label {
+  color: inherit;
+}
+.sz-phase__clock-value {
+  font-size: 2rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sz-morale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 6.5rem;
+  font-size: 0.75rem;
+}
+.sz-morale__bar {
+  height: 0.5rem;
+}
+.sz-morale__value {
+  color: var(--sz-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sz-morale .sz-hud__label {
+  display: flex;
+  justify-content: space-between;
+}
+.sz-situation {
+  position: absolute;
+  right: 1rem;
+  top: 4.5rem;
+  width: 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.sz-stats {
+  padding: 0.5rem 0.75rem 0.6rem;
+}
+.sz-stats h3,
+.sz-objectives h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sz-text-dim);
+}
+.sz-stats dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.75rem;
+}
+.sz-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sz-stat dt {
+  font-size: 0.75rem;
+  color: var(--sz-text-dim);
+}
+.sz-stat dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.sz-stat--bad dd {
+  color: var(--sz-warn);
+}
+.sz-stat:nth-child(5) {
+  grid-column: 1 / -1;
+}
+.sz-objectives {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+.sz-perf {
+  position: absolute;
+  left: 16rem;
+  bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  min-width: 11rem;
+}
+.sz-cmdbar {
+  max-width: calc(100% - 38rem);
+}
+.sz-cmdbar__tabs {
+  align-items: center;
+}
+.sz-cmdbar__windows {
+  display: flex;
+  gap: 0.25rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.sz-btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+.sz-cmd {
+  flex: 0 0 auto;
+  width: 5.75rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.3rem;
+  font-size: 0.75rem;
+  text-align: center;
+}
+.sz-cmd__label {
+  line-height: 1.15;
+}
+.sz-cmd__cost {
+  font-size: 0.8125rem;
+  color: var(--sz-text);
+}
+.sz-cmd[aria-disabled="true"] .sz-cmd__cost {
+  color: var(--sz-danger);
+}
+.sz-glyph {
+  flex: none;
+}
+.sz-resources {
+  flex-wrap: nowrap;
+}
+.sz-cmd {
+  width: 6.25rem;
+}
+@media (max-width: 1400px) {
+  .sz-topbar {
+    gap: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .sz-topbar__center {
+    gap: 0.9rem;
+  }
+  .sz-phase {
+    gap: 0.6rem;
+  }
+  .sz-res {
+    padding: 0.15rem 0.35rem 0.2rem;
+  }
+  .sz-resources {
+    gap: 0.25rem;
+  }
+  .sz-res--main {
+    padding-right: 0.5rem;
+    margin-right: 0.1rem;
+  }
+  .sz-res--main .sz-res__value {
+    font-size: 1.25rem;
+  }
+  .sz-res__value {
+    font-size: 0.9375rem;
+  }
+  .sz-phase__clock-value {
+    font-size: 1.75rem;
+  }
+  .sz-morale {
+    min-width: 4.5rem;
+  }
+  .sz-topbar .sz-btn {
+    padding: 0.3rem 0.45rem;
+  }
+}
+.sz-topbar {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.sz-topbar__center {
+  justify-self: center;
+}
+.sz-topbar__left {
+  min-width: auto;
 }
