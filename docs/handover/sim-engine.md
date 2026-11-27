@@ -72,3 +72,10 @@ graph.ts: Brückenstücke enden exakt an Uferpunkten (4 m Überstand nur beim Ma
 - Patient Null: nächste Stelle im Umkreis 400 m um den Ort mit ≥ 25 Zivilisten im 24-m-Fenster (crowdNear/firstChain in sim/economy/mission.ts, infectCivilian in infection/attack.ts); erste Kette: PHASES.patientZeroFirstChain = 8 nächste Zivilisten infiziert (GDD 6: "erste Infektionskette"). Seeds 11/22/33: 942/1.906/1.183 Ticks bis Verteidigung.
 - eco.panicRiseFactor(): curfew/martialLaw panicFactor × MORALE.lowMoralePanicFactor (1,5 unter strikeBelow) in population/perception.ts.
 - Offen: Mission.pzX/pzY ist der Ort, nicht die tatsächliche Erscheinungsstelle.
+
+## Nachtrag M5 (Sieg, Auswertung, Speichern)
+- Neu: src/sim/outcome/ (result.ts, score.ts, recorder.ts, debrief.ts + Tests), src/sim/save/ (codec.ts, blocks.ts, world-save.ts, save-fixtures.ts, save.test.ts), world-hash.ts (hash()), restoreWorld in world.ts. Statistik-Hooks in attack, incubation, explosion, unit-damage, zombie-traits, structures; Scratch-Kennzeichnung für das Speichern in flow-field, cost-field, safety-field, unit-path, routine.
+- Festlegungen: HQ fällt nach 20 s überrannt; Kern gehalten = HQ steht und < 40 Zombies im Innenring; holdUntilS und Schnell-Sieg ab Tick 0, Halten braucht laufenden Ausbruch; kein Sieg vor Ausbruch; Infektionsfläche = 16-m-Zellen mit Zombies/Inkubierenden; Surrender im Freimodus ignoriert.
+- Ursachen-Parameter: hqOverrun {zombies, squads}; wallLost, noAntiArmor {zombies, colossi, antiArmor}; lateOutbreakResponse {squads}; zoneBreached {pct}; ammoOut keine. Neue Keys (core): Ursachen populationLost, timeLimit, collateral, lowMorale; Momente ammoOut, firstSoldierLost.
+- Spielstand mittel (30.700 Zombies, 19.200 Zivilisten): 2,76 MiB roh, 1,17 MiB gzip; Speichern 121 ms, Laden ~0,7 s; Zivilisten-Felder werden beim Laden neu berechnet.
+- Leistung Freimodus: 9,2/11,4 ms (30k/10k), Missionsmodus + 0,67 ms alle 20 Ticks, + 0,5 ms alle 200 Ticks.

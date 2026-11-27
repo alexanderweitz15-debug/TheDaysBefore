@@ -51,3 +51,8 @@
 - Umwidmen: Wirtschaftsfenster offen + Klick auf Stadtgebäude (select-tool) -> repurposeTarget; render/layers/economy-marks.ts zeichnet Umrisse (Engpass rot + Kreuz).
 - Browser-Test: /tmp-Skript per CDP (google-chrome --remote-debugging-port, Node-WebSocket); kein Playwright installiert. Viewport headless nur ca. 1280x520.
 - Offen: Warnzeichen-Marker und Umwidmen nicht live getestet (keine Warnungen/Gebäude im Testlauf sichtbar); Power-Semantik (amount<0 = rot) geraten; main.ts hat Seed doppelt (FREE_MODE).
+
+## Nachtrag M5 B1/B2
+- Neu: data/game.ts, scenarios/kaltenbach.ts, scenarios/skirmish.ts, data/tutorial/ (Lektion 1 + 2, unlosable), ui/saves.ts, ui/game-flow.ts, ui/command-tap.ts, ui/audio/audio.ts, ui/tutorial/ (Controller, Overlay, Fortschritt), ui/hud/objectives.tsx, ui/screens/ (Pausenmenü, Speicherstände, Auswertung/debrief.tsx mit KEYS_COMPLETE), ui/settings/key-bindings.tsx. Settings-Store generisch, Panel mit 5 Reitern (Spiel, Grafik, Audio, Steuerung, Oberfläche).
+- Feste Keys aus core outcome.ts (score.*, moment.*, cause.*). K/Z/V/P frei belegbar (toolCorridor, toolSafeZone, toolRally, population).
+- Offen: Autopause nur beim Phasenwechsel; Musik/Funk-Regler, Tag-Länge, Bot-Bericht, Kodex in der Auswertung fehlen (spätere Meilensteine).
