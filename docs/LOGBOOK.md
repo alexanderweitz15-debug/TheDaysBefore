@@ -96,3 +96,26 @@ Format: Zeit | Meilenstein | wer | Typ | was | Dateien | Ergebnis
 2026-11-26 22:09 | M2 | hauptagent | COMMIT | M2 in fünf Commits auf main, Pages-Workflow grün (Build 2:14 min inkl. Tests) | - | fb2d410
 2026-11-26 22:09 | M2 | hauptagent | STOPP | M2 auf main und Pages. Nächster Schritt M3 Kampf und Bau | - | -
 2026-11-26 22:09 | M3 | hauptagent | START | Meilenstein M3 Kampf und Bau begonnen | - | -
+2026-11-26 22:11 | M3 | hauptagent | PLAN | Plan M3, Schnittstellen (Befehle, combat.ts, Snapshot v4) und Daten (Einheiten Gegenwart, Bauwerke) | docs/plans/M3.md src/core/ src/data/ | -
+2026-11-26 22:11 | M3 | sim-engine | AUFTRAG | A1 Einheiten, A2 Bauwerke, A3 Kollateral (frischer Agent) | src/sim/ | -
+2026-11-26 22:11 | M3 | gameplay-ui | AUFTRAG | B1 HUD-Grundgerüst, Auswahl, Gruppen, Tasten, Minikarte | src/ui/ src/render/ src/data/i18n/ | -
+2026-11-27 01:11 | M3 | hauptagent | FEHLER | 5-Stunden-Limit erreicht, alle drei Agenten gestoppt | - | Arbeit im Arbeitsbaum
+2026-11-27 01:11 | M3 | hauptagent | START | Limit zurückgesetzt, sim-engine (A1-A3), gameplay-ui (B1), qa-review (C1) werden fortgesetzt | - | -
+2026-11-27 01:16 | M3 | gameplay-ui | FERTIG | B1 obere Leiste, Befehlsleiste, Kontextpanel, Minikarte, Auswahl, Gruppen, Tasten, Platzierung | src/ui/hud/ src/ui/tools/ src/data/hud.ts | Biome, tsc, vite build sauber, nicht im Browser geprüft
+2026-11-27 01:16 | M3 | gameplay-ui | AUFTRAG | B2 frischer Agent: Darstellung Einheiten, Bauwerke, Projektile, FX, Bau-Vorschau, AttackArea | src/render/ src/ui/ | -
+2026-11-27 01:17 | M3 | qa-review | FERTIG | C1 Tests auf Snapshot v4, Abnahmetest M3 vorbereitet (M3_ACCEPTANCE=1), Bench combat-medium (BENCH_COMBAT=1) | tests/ bench/ | 199 grün, 6 übersprungen
+2026-11-27 01:17 | M3 | hauptagent | ENTSCHEIDUNG | WorldOptions.startBudget optional; FX sammeln sich bis writeFx (kein Verlust bei Tempo > 1x) | src/core/types/sim.ts | -
+2026-11-27 01:29 | M3 | gameplay-ui | FERTIG | B2 Einheiten (Symbole, Silhouetten), Bauwerke mit Zuständen, Projektile, FX mit Pools, Bau-Vorschau mit Live-Kosten, AttackArea (Taste G) mit Zivilisten-Schätzung | src/render/layers/ src/ui/tools/attack-tool.ts src/data/render-combat.ts | Biome, vite build sauber, im Harness geprüft
+2026-11-27 01:29 | M3 | hauptagent | ENTSCHEIDUNG | FX-Param, Projektil-kind, Tor-flag als Konvention in combat.ts festgelegt | src/core/types/combat.ts | -
+2026-11-27 01:47 | M3 | sim-engine | FERTIG | A1 Einheiten mit A*, Zielwahl, Projektile, Munition, Depots, Moral; A2 Bauwerke mit Druck, Klettern, Toren, Minen, Ladungen; A3 Kollateral | src/sim/combat/ src/sim/structures/ | 238 Tests grün, check sauber, p95 17,3-18,5 ms
+2026-11-27 01:47 | M3 | qa-review | AUFTRAG | Abschluss M3: Abnahmetests scharf und kalibrieren, Bench combat-medium mit startBudget und Referenz bereinigen, Review A/B | tests/ bench/ docs/progress/M3.md | -
+2026-11-27 02:18 | M3 | qa-review | REVIEW | Abschluss M3: Abnahme bestanden (0 von 300 hinter Linie, Mauer -19 % unter Druck, Kollateral 8 / 0), Bench p95 13-16,6 ms; 4 Dateien über 400 Zeilen | docs/progress/M3.md tests/ bench/ | 248 grün, 1 erwarteter Fehlschlag
+2026-11-27 02:18 | M3 | hauptagent | FIX | Tests in Vitest-Projekte fast/slow getrennt, CI mit zwei parallelen Test-Jobs vor dem Build | vitest.config.ts .github/workflows/pages.yml | fast 42 s, slow 2:16 min
+2026-11-27 02:18 | M3 | sim-engine | AUFTRAG | Dateien fire.ts, structures.ts, units.ts unter 400 Zeilen, PlaceUnit außerhalb der Karte ablehnen, Zones.nextId in Hash | src/sim/ | -
+2026-11-27 02:18 | M3 | gameplay-ui | AUFTRAG | render/layers/structures.ts teilen, build-preview Allokation und Alpha-Werte, Befehlsleiste 1280x720, Platzieren außerhalb der Karte verhindern | src/render/ src/ui/ src/data/ | -
+2026-11-27 02:19 | M3 | gameplay-ui | FIX | Review B: structures.ts geteilt (372), build-preview ohne Allokation und Werte in Daten, Befehlsleiste einzeilig bei 1280x720, kein Befehl bei unzulässiger Platzierung | src/render/ src/ui/ src/data/render-combat.ts | Biome, vite build sauber
+2026-11-27 02:24 | M3 | sim-engine | FIX | fire.ts 303, units.ts 323, structures.ts 392 (neu targeting.ts, unit-damage.ts, kinds.ts, cells.ts), Hash bitgleich; PlaceUnit/PlaceStructure außerhalb der Karte oder auf Gebäude abgelehnt | src/sim/combat/ src/sim/structures/ | fast 209/210 (nur it.fails rot), Bench im Ziel
+2026-11-27 02:24 | M3 | hauptagent | ENTSCHEIDUNG | Platzierung auf unzulässigen Zellen bleibt abgelehnt (kein stilles Verschieben); Bench-Raster wird angepasst | - | -
+2026-11-27 02:28 | M3 | qa-review | FIX | it.fails-Marker entfernt, Bench-Gitter auf begehbare Zellen (200 Trupps), Sanity-Grenze Trupps nach Kampf 80 % | tests/m3-robustness.test.ts bench/run.ts | fast 226 grün, Bench grün
+2026-11-27 02:32 | M3 | sim-engine | FIX | civilians.test.ts und combat.test.ts thematisch geteilt, corridors.test.ts langsam | src/sim/population/ src/sim/combat/ | fast 226 grün
+2026-11-27 02:32 | M3 | hauptagent | ABNAHME | M3 bestanden, 252 Tests grün, alle Dateien < 400 Zeilen | docs/progress/M3.md | bestanden

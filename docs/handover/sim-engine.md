@@ -50,3 +50,11 @@ graph.ts: Brückenstücke enden exakt an Uferpunkten (4 m Überstand nur beim Ma
 - Viral vorläufig: infectChance 0,6, Inkubation 10–30 s, Patient Null 1,8 m/s (siehe DECISIONS).
 - Leistung: volle Ausbreitung bis 19.800 Zombies 6,0 ms avg; + 30.000 extra 12–14 ms avg, p95 ≤ 18 ms.
 - Tests: infection/spread.test.ts (~90 s), civilians.test.ts (~50 s) – schwer, ggf. getrennt laufen lassen.
+
+## Nachtrag M3 (Kampf und Bau)
+- Neu: src/sim/combat/ (units, unit-path, unit-move, fire, explosion, projectiles, fx, line, test-fixtures), src/sim/structures/ (structures, structure-system). Tests combat.test.ts, structures.test.ts (40).
+- Wegfindung: A* auf 4-m-Raster mit Knotenbudget pro Tick und Wegglättung; Straßengraph verworfen (kennt keine Bauwerke/Plätze). Kein Weg-Cache.
+- units-Sektion: ids[i] == UnitView.id, kind = UNIT_TYPE_ORDER-Index. FX sammeln sich bis writeFx. startBudget-Option, Mörser-Streuung bei ungesehenem Ziel.
+- Abweichungen: Linien in 8-m-Segmente mit eigener id; Lärm einmal pro Sekunde je feuerndem Trupp; Zombie-Dichte vor der Bewegung gebaut; Tore blockieren Zombies immer, Menschen nur geschlossen; Sprengladungen zerstören Bauwerke, aber keine Stadtgebäude/Brücken (Karte unveränderlich); Draht wirkt erst fertig gebaut; Wachturm 2 m Radius.
+- Offen: Tor in bestehende Mauer setzen, facing ignoriert, Polizei-Korridorbonus, Sanitäter behandeln Infizierte, Moral durch HQ/Offiziere.
+- Leistung: medium-30k-10k 12,8/18,5 ms (avg/p95), Ausbruch + 30.000 + 200 Trupps + 2 km Mauern 12,6/17,3, nach 2 min 14,9/17,8; Spitzen bis 31 ms.

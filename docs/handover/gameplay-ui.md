@@ -27,3 +27,12 @@
 - Snapshot-Puffer gehen zurück an den Worker: nie Views halten.
 - Preact 11 + signals: Lesen im Render reicht; useEffect mit Unsubscribe.
 - Biome meckert: Zuweisung in Ausdruck, forEach mit Rückgabe, Name `fit`.
+
+## Nachtrag M2/M3 B1
+- M2: layers/zones.ts, corpses.ts, shapes.ts (Typ-Formen), agent-set.ts mit Kamera-Culling (AGENT_CULL_MARGIN_M), ui/tools/zone-tools.ts (K/Z/V, Löschen mit 4 s Rückgängig, Einstellung confirmRemoval).
+- M3 B1: ui/hud/ top-bar.tsx, context-panel.tsx, command-bar.tsx, minimap.tsx, selection-box.tsx, use-poll.ts; status-hud.tsx nur noch ToolHint. ui/tools/ select-tool.ts (Auswahl, Rechtsklick-Befehle), build-tool.ts (Platzierung: Punkt Klick, Linie Ziehen, R dreht), game-keys.ts (Tasten, Gruppen Umschalt+Ziffer, requestDemolish). render/layers/selection.ts (Ringe).
+- view-state.ts: selectedUnits, selectedStructure (Signale, Array ersetzen), buildArm, buildState.rotation, activeTool 'build', toolDraft (cursorX/Y, startX/Y) – reicht für Bau-Vorschau; ZonesLayer.drawPreview ignoriert 'build' noch. selectionBox, jumpCamera(x, y).
+- ui-state.ts: commandTab, demolishConfirm, pendingRemoval, toolNotice. data/hud.ts: HUD-Werte. i18n-Gruppen unit.*, structure.*, stance.*, fire.*, rank.*, ctx.*, cmd.*, hud.*, tool.build.*, minimap.*.
+- Layout styles.css: Leiste oben, Perf darunter (3,5rem), Minikarte + Kontextpanel rechts unten, Befehlsleiste unten Mitte, ToolHint darüber (9rem).
+- Einheiten: sim.curr.units (kind = Index UNIT_TYPE_ORDER, id = UnitView.id) + sim.units für Details. Harness: structures leer, für Tests eintragen.
+- Offen: Einheiten/Bauwerke/Projektile/FX zeichnen, Bau-Vorschau, AttackArea verdrahten, 1280x720 prüfen.
