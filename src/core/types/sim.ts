@@ -1,6 +1,7 @@
 // Contract between the sim host (src/core) and the simulation (src/sim). Implemented by sim-engine.
 import type { Command } from '../commands';
 import type { HashState } from '../hash';
+import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { AgentSection } from './snapshot';
 import type { ZoneView } from './zones';
@@ -28,6 +29,19 @@ export interface SimWorld {
   /** Increments whenever zones change; the host resends zones() then. */
   readonly zonesVersion: number;
   zones(): ZoneView[];
+  readonly unitCount: number;
+  /** Units: position per squad, kind = UNIT index into unit type list of the data. */
+  writeUnits(out: AgentSection): void;
+  units(): UnitView[];
+  /** Increments when structures are added/removed/change state; hp is resent once per second. */
+  readonly structuresVersion: number;
+  structures(): StructureView[];
+  /** Projectiles in flight: kind = projectile type index. */
+  readonly projectileCount: number;
+  writeProjectiles(out: AgentSection): void;
+  /** FX events since the last writeFx call (accumulated across ticks, capped), flat [type, x, y, param]. writeFx clears them. */
+  readonly fxCount: number;
+  writeFx(out: Float32Array): void;
   /** Called at the start of a tick, once per due command, in queue order. Must ignore non-sim commands. */
   applyCommand(cmd: Command): void;
   /** Runs all systems for `tick` in the order of GDD section 4. No allocations. */
@@ -51,10 +65,17 @@ export interface SimCounters {
   zombiesKilled: number;
   /** Tick of outbreak start, -1 before. */
   outbreakTick: number;
+  /** Civilians killed by own weapons (GDD 9/10 collateral, -30 score each). */
+  collateralKills: number;
+  soldiersLost: number;
+  /** Spendable budget (economy arrives in M4; M3 uses a start budget from data). */
+  budget: number;
 }
 
 export interface WorldOptions {
   size: CitySize;
+  /** Overrides the start budget (bench, sandbox). */
+  startBudget?: number;
 }
 
 export type CreateWorld = (seed: number, options: WorldOptions) => SimWorld;

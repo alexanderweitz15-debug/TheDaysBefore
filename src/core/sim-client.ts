@@ -2,6 +2,7 @@
 import type { CommandInput } from './commands';
 import { TICK_MS } from './loop';
 import type { CommandSink, SimView } from './types/app';
+import type { StructureView, UnitView } from './types/combat';
 import type { CityMapData, CitySize } from './types/map';
 import type { FromWorker, SimStats, ToWorker } from './types/messages';
 import type { DebugField, DebugFieldKind } from './types/sim';
@@ -14,6 +15,9 @@ export class SimClient implements SimView, CommandSink {
   map: CityMapData | null = null;
   debugField: DebugField | null = null;
   zones: ZoneView[] = [];
+  units: UnitView[] = [];
+  structures: StructureView[] = [];
+  private structureListeners: ((s: StructureView[]) => void)[] = [];
   private zoneListeners: ((z: ZoneView[]) => void)[] = [];
   stats: SimStats = {
     tick: 0,
@@ -24,7 +28,16 @@ export class SimClient implements SimView, CommandSink {
     zombies: 0,
     civilians: 0,
     corpses: 0,
-    counters: { sheltered: 0, incubating: 0, civiliansDead: 0, zombiesKilled: 0, outbreakTick: -1 },
+    counters: {
+      sheltered: 0,
+      incubating: 0,
+      civiliansDead: 0,
+      zombiesKilled: 0,
+      outbreakTick: -1,
+      collateralKills: 0,
+      soldiersLost: 0,
+      budget: 0,
+    },
     worldGenMs: 0,
   };
   private prevBuffer: ArrayBuffer | null = null;
@@ -82,6 +95,14 @@ export class SimClient implements SimView, CommandSink {
     };
   }
 
+  onStructures(cb: (s: StructureView[]) => void): () => void {
+    this.structureListeners.push(cb);
+    cb(this.structures);
+    return () => {
+      this.structureListeners = this.structureListeners.filter((l) => l !== cb);
+    };
+  }
+
   destroy(): void {
     this.worker.terminate();
   }
@@ -102,6 +123,13 @@ export class SimClient implements SimView, CommandSink {
         return;
       case 'debugField':
         this.debugField = msg.field;
+        return;
+      case 'units':
+        this.units = msg.units;
+        return;
+      case 'structures':
+        this.structures = msg.structures;
+        for (const l of this.structureListeners) l(msg.structures);
         return;
       case 'zones':
         this.zones = msg.zones;

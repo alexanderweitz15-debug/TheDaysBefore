@@ -26,12 +26,26 @@ const stats: SimStats = {
   zombies: 0,
   civilians: 0,
   corpses: 0,
-  counters: { sheltered: 0, incubating: 0, civiliansDead: 0, zombiesKilled: 0, outbreakTick: -1 },
+  counters: {
+    sheltered: 0,
+    incubating: 0,
+    civiliansDead: 0,
+    zombiesKilled: 0,
+    outbreakTick: -1,
+    collateralKills: 0,
+    soldiersLost: 0,
+    budget: 0,
+  },
   worldGenMs: 0,
 };
 let sentZonesVersion = -1;
 let zonesSentAt = 0;
 const ZONES_RESEND_TICKS = 20;
+const UNITS_RESEND_TICKS = 5;
+let sentStructuresVersion = -1;
+let structuresSentAt = 0;
+let unitsSentAt = 0;
+let unitsSentCount = -1;
 
 function post(msg: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(msg, transfer);
@@ -57,26 +71,45 @@ function takeBuffer(bytes: number): ArrayBuffer {
 
 function sendSnapshot(h: SimHost): void {
   const w = h.world;
-  const zc = w.zombieCount;
-  const cc = w.civilianCount;
-  const dc = w.corpseCount;
-  const buffer = takeBuffer(snapshotByteLength(zc, cc, dc));
-  const view = writeSnapshotHeader(buffer, h.tick, w.widthM, w.heightM, zc, cc, dc);
+  const counts = {
+    zombies: w.zombieCount,
+    civilians: w.civilianCount,
+    corpses: w.corpseCount,
+    units: w.unitCount,
+    projectiles: w.projectileCount,
+  };
+  const fxCount = w.fxCount;
+  const buffer = takeBuffer(snapshotByteLength(counts, fxCount));
+  const view = writeSnapshotHeader(buffer, h.tick, w.widthM, w.heightM, counts, fxCount);
   w.writeZombies(view.zombies);
   w.writeCivilians(view.civilians);
   w.writeCorpses(view.corpses);
-  // Occupancy changes every tick; resend on structural change or once per second while zones exist.
+  w.writeUnits(view.units);
+  w.writeProjectiles(view.projectiles);
+  w.writeFx(view.fx);
+  // Occupancy and hp change every tick; resend on structural change or periodically.
   const occupancyDue = h.tick - zonesSentAt >= ZONES_RESEND_TICKS && w.zones().length > 0;
   if (w.zonesVersion !== sentZonesVersion || occupancyDue) {
     sentZonesVersion = w.zonesVersion;
     zonesSentAt = h.tick;
     post({ type: 'zones', zones: w.zones() });
   }
+  const structuresDue = h.tick - structuresSentAt >= ZONES_RESEND_TICKS;
+  if (w.structuresVersion !== sentStructuresVersion || structuresDue) {
+    sentStructuresVersion = w.structuresVersion;
+    structuresSentAt = h.tick;
+    post({ type: 'structures', structures: w.structures() });
+  }
+  if (h.tick - unitsSentAt >= UNITS_RESEND_TICKS || w.unitCount !== unitsSentCount) {
+    unitsSentAt = h.tick;
+    unitsSentCount = w.unitCount;
+    post({ type: 'units', units: w.units() });
+  }
   stats.tick = h.tick;
   stats.speed = h.loop.speed;
-  stats.zombies = zc;
-  stats.civilians = cc;
-  stats.corpses = dc;
+  stats.zombies = counts.zombies;
+  stats.civilians = counts.civilians;
+  stats.corpses = counts.corpses;
   stats.counters = { ...w.counters };
   post({ type: 'snapshot', buffer, stats: { ...stats } }, [buffer]);
   if (debugKind) {

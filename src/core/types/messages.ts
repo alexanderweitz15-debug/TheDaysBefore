@@ -1,5 +1,6 @@
 // Worker protocol. Main thread -> worker: ToWorker. Worker -> main thread: FromWorker.
 import type { Command, CommandInput } from '../commands';
+import type { StructureView, UnitView } from './combat';
 import type { CityMapData, CitySize } from './map';
 import type { DebugField, DebugFieldKind, SimCounters } from './sim';
 import type { ZoneView } from './zones';
@@ -33,4 +34,6 @@ export type FromWorker =
   | { type: 'snapshot'; buffer: ArrayBuffer; stats: SimStats }
   | { type: 'debugField'; field: DebugField }
   | { type: 'zones'; zones: ZoneView[] }
+  | { type: 'units'; units: UnitView[] }
+  | { type: 'structures'; structures: StructureView[] }
   | { type: 'error'; message: string; seed: number; commandLog: Command[] };

@@ -1,5 +1,6 @@
 // Contracts between main.ts, render (src/render) and ui (src/ui).
 import type { CommandInput } from '../commands';
+import type { StructureView, UnitView } from './combat';
 import type { CityMapData } from './map';
 import type { SimStats } from './messages';
 import type { DebugField, DebugFieldKind } from './sim';
@@ -28,6 +29,10 @@ export interface SimView {
   readonly zones: ZoneView[];
   /** Subscribes to zone changes (called immediately with the current list). */
   onZones(cb: (zones: ZoneView[]) => void): () => void;
+  /** Unit details, refreshed 4x per second (positions come from the snapshot). */
+  readonly units: UnitView[];
+  readonly structures: StructureView[];
+  onStructures(cb: (structures: StructureView[]) => void): () => void;
 }
 
 export interface CommandSink {

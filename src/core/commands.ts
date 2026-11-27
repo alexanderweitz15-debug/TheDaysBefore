@@ -36,6 +36,45 @@ export type SetRallyPointCommand = CommandBase<'SetRallyPoint', { x: number; y: 
 /** Removes a zone, corridor or rally point by id. */
 export type RemoveZoneCommand = CommandBase<'RemoveZone', { id: number }>;
 
+export type UnitTypeId =
+  | 'infantry'
+  | 'mgTeam'
+  | 'sniperTeam'
+  | 'mortar'
+  | 'engineers'
+  | 'riotPolice'
+  | 'medics';
+export type Stance = 'hold' | 'holdUntilLosses' | 'aggressive' | 'retreat';
+export type FireMode = 'free' | 'onCommand';
+export type StructureKind =
+  | 'barricade'
+  | 'wall'
+  | 'gate'
+  | 'wire'
+  | 'mines'
+  | 'charge'
+  | 'watchtower'
+  | 'depot';
+
+/** Buys and places a unit (cost from data, deducted from budget). */
+export type PlaceUnitCommand = CommandBase<'PlaceUnit', { unitType: UnitTypeId; x: number; y: number }>;
+/** Moves units; append = queue as waypoint (Shift). facing in radians or null. */
+export type MoveUnitsCommand = CommandBase<
+  'MoveUnits',
+  { unitIds: number[]; x: number; y: number; append: boolean; facing: number | null }
+>;
+export type SetStanceCommand = CommandBase<'SetStance', { unitIds: number[]; stance: Stance }>;
+export type SetFireModeCommand = CommandBase<'SetFireMode', { unitIds: number[]; mode: FireMode }>;
+/** Orders area fire (mortar) or focus fire on a point. */
+export type AttackAreaCommand = CommandBase<'AttackArea', { unitIds: number[]; x: number; y: number }>;
+/** Places a structure: lines (wall, wire, barricade) use the full polyline, others the first point. */
+export type PlaceStructureCommand = CommandBase<
+  'PlaceStructure',
+  { kind: StructureKind; points: number[]; rotation: number }
+>;
+export type DemolishStructureCommand = CommandBase<'DemolishStructure', { id: number }>;
+export type DetonateChargeCommand = CommandBase<'DetonateCharge', { id: number }>;
+
 export type PathogenFamily = 'viral' | 'bacterial' | 'fungal' | 'parasitic' | 'chemical' | 'nanotech';
 
 export type Command =
@@ -45,7 +84,15 @@ export type Command =
   | PlaceSafeZoneCommand
   | DrawCorridorCommand
   | SetRallyPointCommand
-  | RemoveZoneCommand;
+  | RemoveZoneCommand
+  | PlaceUnitCommand
+  | MoveUnitsCommand
+  | SetStanceCommand
+  | SetFireModeCommand
+  | AttackAreaCommand
+  | PlaceStructureCommand
+  | DemolishStructureCommand
+  | DetonateChargeCommand;
 export type CommandType = Command['type'];
 /** What UI and bots submit: the host assigns the tick. */
 export type CommandInput = Omit<Command, 'tick'>;
